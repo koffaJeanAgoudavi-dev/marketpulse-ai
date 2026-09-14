@@ -80,7 +80,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'marketpulse-saas-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
@@ -95,6 +95,12 @@
             };
 
         let app, db, auth, currentUser = null;
+        let unsubscribeHistory = null;
+
+        function getSafeUserKey(email) {
+            if (!email) return currentUser ? currentUser.uid : 'guest';
+            return btoa(email.toLowerCase().trim()).replace(/=/g, '').replace(/\//g, '_');
+        }
 
         try {
             app = initializeApp(firebaseConfig);
@@ -113,46 +119,95 @@
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     currentUser = user;
-                    document.getElementById('cloudStatus').innerHTML = `
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span class="text-xs text-slate-600 dark:text-slate-400 font-semibold">Cloud Synchronisé</span>
-                    `;
-                    listenToCloudHistory(user.uid);
+                    const statusEl = document.getElementById('cloudStatus');
+                    if (statusEl) {
+                        statusEl.innerHTML = `
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-xs text-slate-600 dark:text-slate-400 font-semibold">Cloud Synchronisé</span>
+                        `;
+                    }
+                    const activeEmail = localStorage.getItem('marketpulse_user_email');
+                    if (activeEmail) {
+                        window.loadUserHistory(activeEmail);
+                    }
                 }
             });
         } catch(e) {
             console.warn("Firestore running in fallback mode:", e);
         }
 
-        window.saveToFirestore = async function(contentItem) {
-            if (!currentUser || !db) return;
-            try {
-                const historyRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'history');
-                const newDocRef = doc(historyRef);
-                await setDoc(newDocRef, {
-                    ...contentItem,
-                    createdAt: serverTimestamp()
-                });
-            } catch(err) {
-                console.error("Error saving to Firestore:", err);
+        window.loadUserHistory = function(email) {
+            if (unsubscribeHistory) {
+                unsubscribeHistory();
+                unsubscribeHistory = null;
+            }
+
+            // 1. Charge d'abord depuis localStorage (accès immédiat sans délai)
+            const localData = JSON.parse(localStorage.getItem(`marketpulse_history_${email.toLowerCase()}`) || '[]');
+            renderCloudHistory(localData);
+
+            // 2. Si Firestore est connecté, synchronise en temps réel
+            if (db && email) {
+                const userKey = getSafeUserKey(email);
+                const historyRef = collection(db, 'artifacts', appId, 'users', userKey, 'history');
+                
+                try {
+                    unsubscribeHistory = onSnapshot(historyRef, (snapshot) => {
+                        const cloudHistory = [];
+                        snapshot.forEach(doc => cloudHistory.push({ id: doc.id, ...doc.data() }));
+                        
+                        if (cloudHistory.length > 0) {
+                            localStorage.setItem(`marketpulse_history_${email.toLowerCase()}`, JSON.stringify(cloudHistory));
+                            renderCloudHistory(cloudHistory);
+                        }
+                    }, (err) => console.log("Firestore snapshot info:", err));
+                } catch(err) {
+                    console.log("Firestore stream fallback to local:", err);
+                }
             }
         };
 
-        function listenToCloudHistory(userId) {
-            if (!db) return;
-            const historyRef = collection(db, 'artifacts', appId, 'users', userId, 'history');
-            onSnapshot(historyRef, (snapshot) => {
-                const cloudHistory = [];
-                snapshot.forEach(doc => cloudHistory.push({ id: doc.id, ...doc.data() }));
-                renderCloudHistory(cloudHistory);
-            }, (err) => console.log("Firestore snapshot info:", err));
-        }
+        window.clearUserHistoryUI = function() {
+            if (unsubscribeHistory) {
+                unsubscribeHistory();
+                unsubscribeHistory = null;
+            }
+            renderCloudHistory([]);
+        };
+
+        window.saveToFirestore = async function(contentItem) {
+            const activeEmail = localStorage.getItem('marketpulse_user_email') || '';
+            if (!activeEmail) return;
+
+            // Sauvegarde locale instantanée liée à l'e-mail
+            const localKey = `marketpulse_history_${activeEmail.toLowerCase()}`;
+            const existingLocal = JSON.parse(localStorage.getItem(localKey) || '[]');
+            const updatedLocal = [contentItem, ...existingLocal];
+            localStorage.setItem(localKey, JSON.stringify(updatedLocal));
+            renderCloudHistory(updatedLocal);
+
+            // Sauvegarde dans Firestore si disponible
+            if (db) {
+                try {
+                    const userKey = getSafeUserKey(activeEmail);
+                    const historyRef = collection(db, 'artifacts', appId, 'users', userKey, 'history');
+                    const newDocRef = doc(historyRef);
+                    await setDoc(newDocRef, {
+                        ...contentItem,
+                        userEmail: activeEmail,
+                        createdAt: serverTimestamp()
+                    });
+                } catch(err) {
+                    console.error("Error saving to Firestore:", err);
+                }
+            }
+        };
 
         function renderCloudHistory(historyData) {
             const listEl = document.getElementById('cloudHistoryList');
             if (!listEl) return;
-            if (historyData.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 italic text-center py-4">Aucun projet sauvegardé dans le Cloud.</p>`;
+            if (!historyData || historyData.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 italic text-center py-4">Aucun projet sauvegardé pour ce compte.</p>`;
                 return;
             }
 
@@ -698,6 +753,9 @@
                 openOnboardingModal();
             } else {
                 updateUserUI(userEmail);
+                if (window.loadUserHistory) {
+                    window.loadUserHistory(userEmail);
+                }
             }
         });
 
@@ -730,6 +788,10 @@
             updateUserUI(userEmail);
             closeOnboardingModal();
 
+            if (window.loadUserHistory) {
+                window.loadUserHistory(userEmail);
+            }
+
             if (window.GOOGLE_SHEETS_URL) {
                 fetch(window.GOOGLE_SHEETS_URL, {
                     method: 'POST',
@@ -761,6 +823,9 @@
             localStorage.removeItem('marketpulse_user_email');
             userEmail = '';
             document.getElementById('userProfileBadge').classList.add('hidden');
+            if (window.clearUserHistoryUI) {
+                window.clearUserHistoryUI();
+            }
             showToast("Vous avez été déconnecté.", "info");
             openOnboardingModal();
         }
