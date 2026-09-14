@@ -41,7 +41,7 @@
                 <div>
                     <h1 class="text-lg font-extrabold flex items-center gap-2">
                         MarketPulse AI
-                        <span class="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">Gratuit</span>
+                        <span id="planBadge" class="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">Gratuit</span>
                     </h1>
                     <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Studio Marketing IA Omnicanal</p>
                 </div>
@@ -286,8 +286,8 @@
                         <p class="text-[11px] text-slate-500">50 Crédits de Génération</p>
                         <div class="text-lg font-black text-blue-600 dark:text-blue-400 my-2">4 900 FCFA</div>
                     </div>
-                    <button onclick="showToast('Réglement via Chariow Snap...', 'info')" class="w-full py-2 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white font-bold text-xs rounded-lg hover:opacity-90 transition-all">
-                        Acheter 50 Crédits
+                    <button onclick="buyCreditPack(50)" class="w-full py-2 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white font-bold text-xs rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-coins text-amber-400"></i> Acheter 50 Crédits
                     </button>
                 </div>
 
@@ -296,11 +296,11 @@
                     <span class="absolute -top-2.5 right-3 bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full">POPULAIRE</span>
                     <div>
                         <h4 class="text-xs font-extrabold text-slate-900 dark:text-white">Abonnement PRO</h4>
-                        <p class="text-[11px] text-slate-500">Génération Illimitée + PDF</p>
+                        <p class="text-[11px] text-slate-500">Génération Illimitée + PDF + Multilingue</p>
                         <div class="text-lg font-black text-amber-500 my-2">9 900 FCFA <span class="text-[10px] text-slate-400 font-normal">/mois</span></div>
                     </div>
-                    <button onclick="showToast('Activation du Plan PRO via Chariow...', 'success')" class="w-full py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-lg shadow-md transition-all">
-                        Devenir Membre PRO
+                    <button onclick="activateProPlan()" class="w-full py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-crown"></i> Devenir Membre PRO
                     </button>
                 </div>
             </div>
@@ -374,9 +374,14 @@
     <script>
         window.GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwvt054Ryzs7mC-gchJaS27YNlOfLw-XhVkmKxysjPrpvONV4ScUaPdnD5G5FfCs2TpuA/exec";
 
-        let isProUser = false;
         let userEmail = localStorage.getItem('marketpulse_user_email') || '';
+        let isProUser = checkIfProUser(userEmail);
         let lastGeneratedData = null;
+
+        function checkIfProUser(email) {
+            if (!email) return false;
+            return localStorage.getItem(`marketpulse_is_pro_${email.toLowerCase().trim()}`) === 'true';
+        }
 
         function getUserCredits(email) {
             if (!email) return 15;
@@ -395,6 +400,44 @@
         let totalWords = parseInt(localStorage.getItem('marketpulse_total_words') || '0');
         let totalCampaigns = parseInt(localStorage.getItem('marketpulse_total_campaigns') || '0');
         let detectedRefCode = "";
+
+        function updateProUI() {
+            const badge = document.getElementById('planBadge');
+            if (badge) {
+                if (isProUser) {
+                    badge.textContent = "PRO ✨";
+                    badge.className = "text-[10px] bg-amber-400 text-slate-950 font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm";
+                } else {
+                    badge.textContent = "Gratuit";
+                    badge.className = "text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider";
+                }
+            }
+        }
+
+        function activateProPlan() {
+            if (!userEmail) {
+                openOnboardingModal();
+                return;
+            }
+            isProUser = true;
+            localStorage.setItem(`marketpulse_is_pro_${userEmail.toLowerCase().trim()}`, 'true');
+            updateProUI();
+            closeChariowModal();
+            showToast("👑 Félicitations ! Votre Compte est désormais PRO !", "success");
+        }
+
+        function buyCreditPack(amount) {
+            if (!userEmail) {
+                openOnboardingModal();
+                return;
+            }
+            credits += amount;
+            saveUserCredits(userEmail, credits);
+            const userCreditsEl = document.getElementById('userCredits');
+            if (userCreditsEl) userCreditsEl.textContent = credits;
+            closeChariowModal();
+            showToast(`🎉 ${amount} Crédits ajoutés à votre solde !`, "success");
+        }
 
         function checkReferralURL() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -450,7 +493,7 @@
             document.getElementById('statWords').textContent = totalWords;
             document.getElementById('statCampaigns').textContent = totalCampaigns;
             document.getElementById('statHours').textContent = (totalCampaigns * 0.5).toFixed(1) + 'h';
-            document.getElementById('statCredits').textContent = credits;
+            document.getElementById('statCredits').textContent = isProUser ? '∞ (PRO)' : credits;
             modal.classList.remove('hidden');
         }
 
@@ -571,10 +614,12 @@
             if (!userEmail) {
                 openOnboardingModal();
             } else {
+                isProUser = checkIfProUser(userEmail);
                 credits = getUserCredits(userEmail);
                 const userCreditsEl = document.getElementById('userCredits');
-                if (userCreditsEl) userCreditsEl.textContent = credits;
+                if (userCreditsEl) userCreditsEl.textContent = isProUser ? '∞' : credits;
                 updateUserUI(userEmail);
+                updateProUI();
                 loadUserHistory(userEmail);
             }
         });
@@ -587,6 +632,7 @@
 
             userEmail = emailInput;
             localStorage.setItem('marketpulse_user_email', userEmail);
+            isProUser = checkIfProUser(userEmail);
             
             const existingCredits = localStorage.getItem(`marketpulse_credits_${userEmail.toLowerCase()}`);
             if (existingCredits !== null) {
@@ -603,9 +649,10 @@
             }
             
             const userCreditsEl = document.getElementById('userCredits');
-            if (userCreditsEl) userCreditsEl.textContent = credits;
+            if (userCreditsEl) userCreditsEl.textContent = isProUser ? '∞' : credits;
 
             updateUserUI(userEmail);
+            updateProUI();
             closeOnboardingModal();
             loadUserHistory(userEmail);
 
@@ -627,8 +674,9 @@
 
         function updateUserUI(email) {
             credits = getUserCredits(email);
+            isProUser = checkIfProUser(email);
             const userCreditsEl = document.getElementById('userCredits');
-            if (userCreditsEl) userCreditsEl.textContent = credits;
+            if (userCreditsEl) userCreditsEl.textContent = isProUser ? '∞' : credits;
 
             const badge = document.getElementById('userProfileBadge');
             const emailSpan = document.getElementById('displayUserEmail');
@@ -698,7 +746,9 @@
         async function generateCampaign(e) {
             e.preventDefault();
             credits = getUserCredits(userEmail);
-            if (credits <= 0) {
+            isProUser = checkIfProUser(userEmail);
+
+            if (!isProUser && credits <= 0) {
                 showToast("Vous n'avez plus de crédits disponibles. Rechargez via Chariow !", 'error');
                 openChariowModal();
                 return;
@@ -714,9 +764,11 @@
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Génération en ${lang}...`;
 
-            credits--;
-            saveUserCredits(userEmail, credits);
-            document.getElementById('userCredits').textContent = credits;
+            if (!isProUser) {
+                credits--;
+                saveUserCredits(userEmail, credits);
+                document.getElementById('userCredits').textContent = credits;
+            }
 
             try {
                 const generatedResult = {
@@ -738,14 +790,14 @@
                 lastGeneratedData = { brand, target, tone, lang, offer, ...generatedResult };
                 renderResults(brand, generatedResult, tone, lang);
                 saveCampaignToLocalHistory(lastGeneratedData);
-                showToast(`Campagne générée et sauvegardée ! (-1 crédit)`, 'success');
+                showToast(isProUser ? 'Campagne générée en Mode PRO !' : 'Campagne générée et sauvegardée ! (-1 crédit)', 'success');
 
             } catch (err) {
                 console.error("Erreur de génération:", err);
                 showToast("Erreur lors de la génération.", 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-base"></i> Générer la Campagne (1 crédit)`;
+                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-base"></i> Générer la Campagne ${isProUser ? '(Illimité PRO)' : '(1 crédit)'}`;
             }
         }
 
