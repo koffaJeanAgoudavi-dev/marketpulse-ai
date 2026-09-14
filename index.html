@@ -745,6 +745,32 @@
             showToast("Accroche copiée !", "success");
         }
 
+        function copySingleSection(type) {
+            if (!lastGeneratedData) return;
+            if (type === 'post') {
+                copyTextToClipboard(lastGeneratedData.post);
+                showToast("Post réseau social copié !", "success");
+            } else if (type === 'email') {
+                copyTextToClipboard(lastGeneratedData.email);
+                showToast("E-mail de prospection copié !", "success");
+            }
+        }
+
+        function getCampaignImageUrl(brand, offer) {
+            const text = (brand + ' ' + offer).toLowerCase();
+            if (text.includes('resto') || text.includes('gourmand') || text.includes('cuisine') || text.includes('plat') || text.includes('grill')) {
+                return 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80';
+            } else if (text.includes('immo') || text.includes('villa') || text.includes('maison') || text.includes('appartement')) {
+                return 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80';
+            } else if (text.includes('ecom') || text.includes('shop') || text.includes('mode') || text.includes('livraison') || text.includes('tech')) {
+                return 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=800&q=80';
+            } else if (text.includes('coach') || text.includes('form') || text.includes('academ') || text.includes('etud')) {
+                return 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80';
+            } else {
+                return 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80';
+            }
+        }
+
         // --- Onboarding & Auth ---
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
@@ -979,6 +1005,8 @@
 
         function renderResults(brand, data, tone, lang) {
             const container = document.getElementById('resultsContainer');
+            const imageUrl = getCampaignImageUrl(brand, lastGeneratedData ? lastGeneratedData.offer : '');
+            
             container.innerHTML = `
                 <div id="exportableCampaignContent" class="space-y-4">
                     <!-- Visual Mockup Réseaux Sociaux -->
@@ -987,7 +1015,12 @@
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                                 <i class="fa-brands fa-linkedin text-blue-600 dark:text-blue-400 text-sm"></i> Prévisualisation Mockup Réseau Social (${lang || 'FR'})
                             </span>
-                            <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded">Aperçu Réaliste</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="copySingleSection('post')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
+                                    <i class="fa-solid fa-copy text-brand-blue dark:text-blue-400"></i> Copier le Post
+                                </button>
+                                <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded">Aperçu Réaliste</span>
+                            </div>
                         </div>
 
                         <div class="p-4 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-3 font-sans">
@@ -1008,6 +1041,11 @@
 
                             <div class="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-normal">
                                 ${data.post}
+                            </div>
+
+                            <!-- Image Visuelle Générée Publicitaire -->
+                            <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm my-2">
+                                <img src="${imageUrl}" alt="Visuel Publicitaire ${brand}" class="w-full h-48 sm:h-56 object-cover hover:scale-105 transition-all duration-300">
                             </div>
 
                             <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
@@ -1032,7 +1070,7 @@
                         <ul class="space-y-2 text-xs text-slate-800 dark:text-slate-200">
                             ${data.hooks.map(h => `<li class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 font-medium flex items-center justify-between group">
                                 <span>${h}</span>
-                                <button onclick="copySingleHook('${h.replace(/'/g, "\\'")}');" class="text-slate-400 hover:text-brand-blue text-xs p-1">
+                                <button onclick="copySingleHook('${h.replace(/'/g, "\\'")}');" class="text-slate-400 hover:text-brand-blue text-xs p-1" title="Copier cette accroche">
                                     <i class="fa-solid fa-copy"></i>
                                 </button>
                             </li>`).join('')}
@@ -1041,9 +1079,14 @@
 
                     <!-- Email Card -->
                     <div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
-                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                            <i class="fa-solid fa-envelope text-brand-blue dark:text-blue-400"></i> E-mail de Prospection (Cold Email)
-                        </span>
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-envelope text-brand-blue dark:text-blue-400"></i> E-mail de Prospection (Cold Email)
+                            </span>
+                            <button onclick="copySingleSection('email')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
+                                <i class="fa-solid fa-copy text-brand-blue dark:text-blue-400"></i> Copier l'E-mail
+                            </button>
+                        </div>
                         <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed">
                             ${data.email}
                         </div>
