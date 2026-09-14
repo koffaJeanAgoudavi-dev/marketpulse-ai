@@ -6,678 +6,394 @@
     <title>MarketPulse AI - Studio Omnicanal Pro</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-blue': '#2563eb',
+                        'brand-dark': '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- html2pdf.js pour export PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
-    <script>
-        // CONFIGURATION GOOGLE SHEETS DÉPLOYÉE
-        window.GOOGLE_SHEETS_URL = localStorage.getItem('google_sheets_url') || "https://script.google.com/macros/s/AKfycbwvt054Ryzs7mC-gchJaS27YNlOfLw-XhVkmKxysjPrpvONV4ScUaPdnD5G5FfCs2TpuA/exec";
-
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            blue: '#0047AB',
-                            navy: '#0B192C',
-                            yellow: '#FFCC00',
-                            yellowLight: '#FFF8D6',
-                            yellowHover: '#E6B800',
-                            grayBg: '#F8FAFC'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        .light-card {
-            background: #ffffff;
-            border: 1px solid #E2E8F0;
-            box-shadow: 0 4px 20px -2px rgba(11, 25, 44, 0.05);
-        }
-        .dark .light-card {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #FFCC00;
-            border-radius: 9999px;
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
     </style>
-
-    <!-- Chariow Widget Official SDK Script -->
-    <script>
-    (function() {
-      var script = document.createElement('script');
-      script.src = 'https://js.chariowcdn.com/v1/widget.min.js';
-      script.async = true;
-      document.head.appendChild(script);
-
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://js.chariowcdn.com/v1/widget.min.css';
-      document.head.appendChild(link);
-    })();
-    </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-yellow-400 selection:text-slate-900 pb-16 md:pb-0 transition-colors duration-200">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-200">
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'marketpulse-saas-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "demo-key",
-                authDomain: "demo-app.firebaseapp.com",
-                projectId: "demo-app",
-                storageBucket: "demo-app.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456789:web:abcdef"
-            };
-
-        let app, db, auth, currentUser = null;
-        let unsubscribeHistory = null;
-        window.currentHistoryList = [];
-
-        function getSafeUserKey(email) {
-            if (!email) return currentUser ? currentUser.uid : 'guest';
-            return btoa(email.toLowerCase().trim()).replace(/=/g, '').replace(/\//g, '_');
-        }
-
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-
-            const initAuth = async () => {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            };
-            await initAuth();
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUser = user;
-                    const statusEl = document.getElementById('cloudStatus');
-                    if (statusEl) {
-                        statusEl.innerHTML = `
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span class="text-xs text-slate-600 dark:text-slate-400 font-semibold">Cloud Synchronisé</span>
-                        `;
-                    }
-                    const activeEmail = localStorage.getItem('marketpulse_user_email');
-                    if (activeEmail) {
-                        window.loadUserHistory(activeEmail);
-                    }
-                }
-            });
-        } catch(e) {
-            console.warn("Firestore running in fallback mode:", e);
-        }
-
-        window.loadUserHistory = function(email) {
-            if (unsubscribeHistory) {
-                unsubscribeHistory();
-                unsubscribeHistory = null;
-            }
-
-            // 1. Charge d'abord depuis localStorage (accès immédiat sans délai)
-            const localData = JSON.parse(localStorage.getItem(`marketpulse_history_${email.toLowerCase()}`) || '[]');
-            renderCloudHistory(localData);
-
-            // 2. Si Firestore est connecté, synchronise en temps réel
-            if (db && email) {
-                const userKey = getSafeUserKey(email);
-                const historyRef = collection(db, 'artifacts', appId, 'users', userKey, 'history');
-                
-                try {
-                    unsubscribeHistory = onSnapshot(historyRef, (snapshot) => {
-                        const cloudHistory = [];
-                        snapshot.forEach(doc => cloudHistory.push({ id: doc.id, ...doc.data() }));
-                        
-                        if (cloudHistory.length > 0) {
-                            localStorage.setItem(`marketpulse_history_${email.toLowerCase()}`, JSON.stringify(cloudHistory));
-                            renderCloudHistory(cloudHistory);
-                        }
-                    }, (err) => console.log("Firestore snapshot info:", err));
-                } catch(err) {
-                    console.log("Firestore stream fallback to local:", err);
-                }
-            }
-        };
-
-        window.clearUserHistoryUI = function() {
-            if (unsubscribeHistory) {
-                unsubscribeHistory();
-                unsubscribeHistory = null;
-            }
-            renderCloudHistory([]);
-        };
-
-        window.saveToFirestore = async function(contentItem) {
-            const activeEmail = localStorage.getItem('marketpulse_user_email') || '';
-            if (!activeEmail) return;
-
-            // Sauvegarde locale instantanée liée à l'e-mail
-            const localKey = `marketpulse_history_${activeEmail.toLowerCase()}`;
-            const existingLocal = JSON.parse(localStorage.getItem(localKey) || '[]');
-            const updatedLocal = [contentItem, ...existingLocal];
-            localStorage.setItem(localKey, JSON.stringify(updatedLocal));
-            renderCloudHistory(updatedLocal);
-
-            // Sauvegarde dans Firestore si disponible
-            if (db) {
-                try {
-                    const userKey = getSafeUserKey(activeEmail);
-                    const historyRef = collection(db, 'artifacts', appId, 'users', userKey, 'history');
-                    const newDocRef = doc(historyRef);
-                    await setDoc(newDocRef, {
-                        ...contentItem,
-                        userEmail: activeEmail,
-                        createdAt: serverTimestamp()
-                    });
-                } catch(err) {
-                    console.error("Error saving to Firestore:", err);
-                }
-            }
-        };
-
-        function renderCloudHistory(historyData) {
-            const listEl = document.getElementById('cloudHistoryList');
-            if (!listEl) return;
-            window.currentHistoryList = historyData || [];
-
-            if (!historyData || historyData.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 italic text-center py-4">Aucun projet sauvegardé pour ce compte.</p>`;
-                return;
-            }
-
-            listEl.innerHTML = historyData.map((item, idx) => `
-                <div onclick="restoreHistoryItem(${idx})" class="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-yellow-50/80 dark:hover:bg-slate-700/80 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex flex-col gap-1.5 shadow-sm cursor-pointer transition-all hover:border-amber-400 group">
-                    <div class="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
-                        <span class="text-brand-blue dark:text-blue-400 flex items-center gap-1 group-hover:text-amber-600 font-extrabold"><i class="fa-solid fa-bolt text-amber-500"></i>${item.brand || 'Campagne'}</span>
-                        <span class="text-[10px] bg-yellow-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded font-bold">${item.tone || 'Pro'}</span>
-                    </div>
-                    <p class="text-slate-600 dark:text-slate-400 line-clamp-2">${item.hook || (item.hooks ? item.hooks[0] : '') || item.email || ''}</p>
-                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                        <span>${item.lang || 'Français 🇫🇷'}</span>
-                        <span class="text-brand-blue dark:text-blue-400 font-extrabold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">Recharger <i class="fa-solid fa-arrow-right"></i></span>
-                    </div>
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-amber-400 flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-chart-line text-lg"></i>
                 </div>
-            `).join('');
-        }
+                <div>
+                    <h1 class="text-lg font-extrabold flex items-center gap-2">
+                        MarketPulse AI
+                        <span class="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">Gratuit</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Studio Marketing IA Omnicanal</p>
+                </div>
+            </div>
 
-        window.restoreHistoryItem = function(index) {
-            const item = window.currentHistoryList[index];
-            if (!item) return;
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Analytics Button -->
+                <button onclick="openAnalyticsModal()" class="text-xs font-semibold px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-pie text-blue-500"></i>
+                    <span class="hidden md:inline">Analytics</span>
+                </button>
 
-            if (item.brand) document.getElementById('brandName').value = item.brand;
-            if (item.target) document.getElementById('targetAudience').value = item.target;
-            if (item.tone) document.getElementById('campaignTone').value = item.tone;
-            if (item.lang) document.getElementById('generationLanguage').value = item.lang;
-            if (item.offer) document.getElementById('offerDetails').value = item.offer;
+                <!-- Referral Button -->
+                <button onclick="openReferralModal()" class="text-xs font-bold px-3 py-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-xl transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-gift"></i>
+                    <span>+5 Crédits</span>
+                </button>
 
-            const generatedData = {
-                hooks: item.hooks || [item.hook || `Découvrez ${item.brand}`],
-                post: item.post || `🔥 Offre spéciale ${item.brand} :\n\n${item.offer || ''}`,
-                email: item.email || `Bonjour,\n\nEn savoir plus sur ${item.brand}.\n\nCordialement,`
-            };
+                <!-- Theme Switcher -->
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-700 dark:text-slate-200" title="Changer le thème">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                </button>
 
-            window.lastGeneratedData = {
-                brand: item.brand,
-                target: item.target,
-                tone: item.tone,
-                lang: item.lang,
-                offer: item.offer || '',
-                ...generatedData
-            };
-
-            window.renderResults(item.brand, generatedData, item.tone, item.lang);
-            showToast(`📂 Projet "${item.brand}" réouvert !`, 'success');
-        };
-    </script>
-
-    <!-- Toast Notification Container -->
-    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
-    <!-- Accentuation Jaune Soleil -->
-    <div class="h-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-brand-blue w-full"></div>
-    
-    <header class="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Brand & Cloud Indicator -->
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-brand-yellow flex items-center justify-center text-slate-950 font-extrabold shadow-md">
-                        <i class="fa-solid fa-chart-line text-lg text-slate-950"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">
-                                MarketPulse <span class="text-brand-blue dark:text-blue-400">AI</span>
-                            </span>
-                            <span id="userPlanBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                                GRATUIT
-                            </span>
-                        </div>
-                        <div id="cloudStatus" class="flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-                            <span class="text-xs text-slate-500 dark:text-slate-400">Mode Local</span>
-                        </div>
-                    </div>
+                <!-- User Profile Badge -->
+                <div id="userProfileBadge" class="hidden items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700">
+                    <i class="fa-solid fa-user text-blue-500"></i>
+                    <span id="displayUserEmail" class="max-w-[120px] truncate"></span>
+                    <button onclick="logoutUser()" class="text-slate-400 hover:text-rose-500 ml-1" title="Déconnexion">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
                 </div>
 
-                <!-- Controls & Actions -->
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <!-- 📊 Bouton Analytics -->
-                    <button onclick="openAnalyticsModal()" title="Voir les statistiques" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-xs font-bold flex items-center gap-1">
-                        <i class="fa-solid fa-chart-pie text-brand-blue dark:text-blue-400"></i>
-                        <span class="hidden md:inline">Analytics</span>
-                    </button>
-
-                    <!-- 🎁 Bouton Parrainage -->
-                    <button onclick="openReferralModal()" title="Inviter un ami (+5 crédits)" class="p-2 px-3 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 hover:bg-amber-200 transition-all text-xs font-extrabold flex items-center gap-1.5">
-                        <i class="fa-solid fa-gift text-amber-500"></i>
-                        <span class="hidden sm:inline">+5 Crédits</span>
-                    </button>
-
-                    <!-- Commutateur Mode Sombre / Mode Clair -->
-                    <button onclick="toggleTheme()" id="themeToggleBtn" title="Changer de thème" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-yellow-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-sm">
-                        <i id="themeIcon" class="fa-solid fa-moon"></i>
-                    </button>
-
-                    <div id="userProfileBadge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 font-semibold">
-                        <i class="fa-solid fa-user text-brand-blue dark:text-blue-400"></i>
-                        <span id="displayUserEmail" class="max-w-[120px] truncate">Compte</span>
-                        <button onclick="logoutUser()" title="Se déconnecter" class="ml-1 text-slate-400 hover:text-rose-600 transition-colors p-1">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </button>
-                    </div>
-
-                    <div class="flex items-center gap-2 px-3.5 py-1.5 bg-yellow-50 dark:bg-amber-950/40 rounded-xl border border-yellow-200 dark:border-amber-800/60 text-xs shadow-inner">
-                        <i class="fa-solid fa-coins text-amber-500 text-sm"></i>
-                        <span class="text-slate-600 dark:text-slate-300 font-medium hidden xs:inline">Crédits:</span>
-                        <span id="userCredits" class="font-extrabold text-slate-900 dark:text-amber-300 text-sm">15</span>
-                    </div>
-
-                    <button onclick="openChariowModal()" class="px-3.5 py-2 sm:px-4 rounded-xl bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95">
-                        <i class="fa-solid fa-bolt text-slate-950"></i>
-                        <span class="hidden sm:inline">Recharger / Passer Pro</span>
-                    </button>
+                <!-- Credits Badge -->
+                <div class="flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/30 px-3 py-1.5 rounded-xl text-xs font-extrabold text-amber-600 dark:text-amber-400">
+                    <i class="fa-solid fa-coins"></i>
+                    <span id="userCredits">15</span>
                 </div>
+
+                <!-- Recharge / PRO Button -->
+                <button onclick="openChariowModal()" class="text-xs font-bold px-3.5 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span class="hidden sm:inline">Recharger / Passer PRO</span>
+                </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid lg:grid-cols-12 gap-6">
+    <!-- Main Workspace -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- Left Panel: Input & Campaign Config -->
-        <div class="lg:col-span-5 space-y-6">
-            <div class="light-card p-5 rounded-2xl space-y-4">
+        <!-- Left Column: Form & History -->
+        <section class="lg:col-span-5 space-y-6">
+            <!-- Form Card -->
+            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <h2 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
-                        Studio de Création IA
+                    <h2 class="text-sm font-extrabold flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Studio de Création IA
                     </h2>
-                    <span class="text-xs bg-slate-100 dark:bg-slate-800 text-brand-blue dark:text-blue-400 font-bold px-2.5 py-1 rounded-md">Omnicanal</span>
+                    <span class="text-[11px] text-slate-400 font-semibold">Omnicanal</span>
                 </div>
 
-                <!-- Modèles Rapides par Niche -->
+                <!-- Modèles Pré-remplis (Presets) -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
-                        <span><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Modèles Pré-remplis (Presets)</span>
-                        <span class="text-[10px] text-slate-400 font-normal">1-Clic</span>
+                    <label class="block text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                        ⚡ Modèles Pré-remplis (Presets)
                     </label>
                     <div class="flex flex-wrap gap-1.5">
-                        <button type="button" onclick="applyPreset('ecom')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">🛒 E-Commerce</button>
-                        <button type="button" onclick="applyPreset('coaching')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">🎓 Formation</button>
-                        <button type="button" onclick="applyPreset('immo')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">🏠 Immobilier</button>
-                        <button type="button" onclick="applyPreset('resto')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">🍽️ Restauration</button>
-                        <button type="button" onclick="applyPreset('b2b')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">💼 B2B / Agence</button>
+                        <button onclick="applyPreset('ecom')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                            🛒 E-Commerce
+                        </button>
+                        <button onclick="applyPreset('coaching')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                            🎓 Formation
+                        </button>
+                        <button onclick="applyPreset('immo')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                            🏠 Immobilier
+                        </button>
+                        <button onclick="applyPreset('resto')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                            🍽️ Restauration
+                        </button>
+                        <button onclick="applyPreset('b2b')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                            💼 B2B / Agence
+                        </button>
                     </div>
                 </div>
 
-                <form id="campaignForm" class="space-y-4" onsubmit="generateCampaign(event)">
+                <!-- Input Form -->
+                <form onsubmit="generateCampaign(event)" class="space-y-3.5">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Nom de votre Marque / Produit</label>
-                        <input type="text" id="brandName" required placeholder="Ex: Chariow Pay, AfroCourse" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all">
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nom de votre Marque / Produit</label>
+                        <input type="text" id="brandName" required placeholder="Ex: Afrishop Express" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Public Cible (Persona)</label>
-                        <input type="text" id="targetAudience" required placeholder="Ex: Solopreneurs Afrique, Agences" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue transition-all">
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Public Cible (Persona)</label>
+                        <input type="text" id="targetAudience" required placeholder="Ex: Acheteurs en ligne & E-commerçants" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Ton du contenu</label>
-                            <select id="campaignTone" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue">
-                                <option value="Inspirant & Captivant">Inspirant</option>
-                                <option value="Urgent & Persuasif">Urgent (Vente)</option>
-                                <option value="Professionnel & Premium">Professionnel</option>
-                                <option value="Décontracté & Amusant">Amical</option>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Ton du contenu</label>
+                            <select id="campaignTone" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                <option>Urgent & Persuasif</option>
+                                <option>Inspirant & Captivant</option>
+                                <option>Professionnel & Premium</option>
+                                <option>Décontracté & Amusant</option>
                             </select>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
-                                <span>Langue</span>
-                                <span class="text-[9px] bg-amber-400 text-slate-950 font-extrabold px-1.5 py-0.2 rounded">PRO</span>
-                            </label>
-                            <select id="generationLanguage" onchange="handleLanguageChange(this)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Langue</label>
+                                <span class="text-[9px] bg-amber-400 text-slate-900 font-black px-1.5 py-0.2 rounded">PRO</span>
+                            </div>
+                            <select id="generationLanguage" onchange="handleLanguageChange(this)" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                                 <option value="Français 🇫🇷">Français 🇫🇷</option>
-                                <option value="English 🇬🇧">English 🇬🇧 🔒 PRO</option>
-                                <option value="Español 🇪🇸">Español 🇪🇸 🔒 PRO</option>
-                                <option value="العربية 🇸🇦">العربية 🇸🇦 🔒 PRO</option>
-                                <option value="Kiswahili 🇰🇪">Kiswahili 🇰🇪 🔒 PRO</option>
+                                <option value="English 🇬🇧">English 🇬🇧 🔒</option>
+                                <option value="Español 🇪🇸">Español 🇪🇸 🔒</option>
+                                <option value="العربية 🇸🇦">العربية 🇸🇦 🔒</option>
+                                <option value="Kiswahili 🇰🇪">Kiswahili 🇰🇪 🔒</option>
                             </select>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Description de votre Offre</label>
-                        <textarea id="offerDetails" rows="3" required placeholder="Ex: Plateforme tout-en-un pour vendre vos cours..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue transition-all"></textarea>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description de votre Offre</label>
+                        <textarea id="offerDetails" rows="3" required placeholder="Ex: Livraison gratuite en 24h avec paiement Mobile Money..." class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"></textarea>
                     </div>
 
-                    <button type="submit" id="generateBtn" class="w-full py-3.5 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98">
-                        <i class="fa-solid fa-wand-magic-sparkles text-slate-950 text-base"></i>
-                        Générer la Campagne (1 crédit)
+                    <button type="submit" id="generateBtn" class="w-full py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-base"></i> Générer la Campagne (1 crédit)
                     </button>
                 </form>
             </div>
 
-            <!-- Cloud Saved Items -->
-            <div class="light-card p-5 rounded-2xl shadow-sm">
-                <h3 class="font-bold text-sm text-slate-900 dark:text-white mb-3 flex items-center justify-between">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-cloud text-brand-blue dark:text-blue-400"></i>Historique Cloud</span>
-                    <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-brand-blue dark:text-blue-300 font-bold px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800">Cliquable</span>
+            <!-- Historique Cloud Card -->
+            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                    <h3 class="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud text-blue-500"></i> Historique Cloud
+                    </h3>
+                    <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 font-bold px-2 py-0.5 rounded">Sauvegarde Auto</span>
+                </div>
+                <div id="historyList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <p class="text-xs text-slate-400 italic text-center py-4">Aucune campagne sauvegardée pour le moment.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Results Display -->
+        <section class="lg:col-span-7 space-y-4">
+            <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <h3 class="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-square-poll-vertical text-blue-500"></i> Résultat de la Campagne
                 </h3>
-                <div id="cloudHistoryList" class="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    <!-- Dynamic Cloud Items -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Panel: Results & Export Generator -->
-        <div class="lg:col-span-7 space-y-6">
-            <div class="light-card p-5 rounded-2xl space-y-5">
-                <div class="flex flex-wrap items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
-                    <h2 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                        <i class="fa-solid fa-square-poll-vertical text-brand-blue dark:text-blue-400"></i>
-                        Résultat de la Campagne
-                    </h2>
-                    
-                    <!-- Exportation avec Cadenas PRO sur le PDF -->
-                    <div class="flex items-center gap-2">
-                        <button onclick="exportToTXT()" title="Télécharger au format texte" class="text-xs px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1.5 transition-all">
-                            <i class="fa-solid fa-file-lines text-emerald-600"></i> TXT
-                        </button>
-                        <button onclick="exportToPDF()" title="Télécharger en document PDF (Plan PRO)" class="text-xs px-3 py-1.5 bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 border border-amber-300 dark:border-amber-800 rounded-xl text-amber-950 dark:text-amber-200 font-extrabold flex items-center gap-1.5 transition-all">
-                            <i class="fa-solid fa-lock text-amber-600"></i> PDF PRO
-                        </button>
-                        <button onclick="copyGeneratedContent()" class="text-xs px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1.5 transition-all">
-                            <i class="fa-solid fa-copy text-brand-blue dark:text-blue-400"></i> Copier
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Generated Content Container -->
-                <div id="resultsContainer" class="space-y-4">
-                    <div class="p-10 text-center text-slate-500 dark:text-slate-400 space-y-3">
-                        <div class="w-16 h-16 rounded-2xl bg-yellow-100 dark:bg-amber-900/30 border border-yellow-300 dark:border-amber-800 flex items-center justify-center mx-auto text-slate-900 dark:text-yellow-400 shadow-sm">
-                            <i class="fa-solid fa-rocket text-3xl text-amber-600 dark:text-amber-400"></i>
-                        </div>
-                        <h3 class="font-bold text-slate-900 dark:text-white text-base">Prêt à créer du contenu à forte conversion ?</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">Remplissez les informations à gauche ou cliquez sur un <strong class="text-brand-blue dark:text-blue-400">Modèle Pré-rempli</strong> pour tester l'IA.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modal Mini Analytics -->
-    <div id="analyticsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-2xl relative">
-            <button onclick="closeAnalyticsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-2">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <div class="text-center space-y-1.5">
-                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 text-brand-blue dark:text-blue-400 rounded-2xl mx-auto flex items-center justify-center text-xl font-bold">
-                    <i class="fa-solid fa-chart-pie"></i>
-                </div>
-                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Vos Analytics Marketing</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Suivi de votre productivité et de l'impact de l'IA</p>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-3 text-center">
-                <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span class="text-2xl font-extrabold text-brand-blue dark:text-blue-400 block" id="statWords">0</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Mots Générés</span>
-                </div>
-                <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span class="text-2xl font-extrabold text-amber-500 block" id="statCampaigns">0</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Campagnes Créées</span>
-                </div>
-                <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span class="text-2xl font-extrabold text-emerald-500 block" id="statHours">0h</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Temps Économisé</span>
-                </div>
-                <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span class="text-2xl font-extrabold text-purple-500 block" id="statCredits">15</span>
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Crédits Restants</span>
-                </div>
-            </div>
-
-            <button onclick="openChariowModal()" class="w-full py-2.5 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-xs rounded-xl transition-all">
-                ⚡ Passer au Plan PRO pour Analytics Illimités
-            </button>
-        </div>
-    </div>
-
-    <!-- Modal Parrainage -->
-    <div id="referralModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-2xl relative">
-            <button onclick="closeReferralModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-2">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <div class="text-center space-y-1.5">
-                <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 text-amber-500 rounded-2xl mx-auto flex items-center justify-center text-xl font-bold">
-                    <i class="fa-solid fa-gift"></i>
-                </div>
-                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Invitez un ami, gagnez des crédits !</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Chaque ami inscrit via votre lien vous rapporte <strong>+5 crédits gratuits</strong>.</p>
-            </div>
-
-            <div class="space-y-2">
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Votre lien unique de parrainage :</label>
                 <div class="flex items-center gap-2">
-                    <input type="text" id="referralLinkInput" readonly class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 font-mono">
-                    <button onclick="copyReferralLink()" class="px-4 py-2 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1">
+                    <button onclick="exportToTXT()" class="text-xs px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
+                        <i class="fa-solid fa-file-lines text-emerald-500"></i> TXT
+                    </button>
+                    <button onclick="exportToPDF()" class="text-xs px-2.5 py-1.5 bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/30 rounded-lg text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1 transition-all">
+                        <i class="fa-solid fa-lock text-amber-500 text-[10px]"></i> PDF PRO
+                    </button>
+                    <button onclick="copyGeneratedContent()" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm">
                         <i class="fa-solid fa-copy"></i> Copier
                     </button>
                 </div>
             </div>
 
-            <div class="p-3 bg-yellow-50 dark:bg-amber-950/30 rounded-xl border border-yellow-200 dark:border-amber-900/50 text-xs text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <i class="fa-solid fa-users text-amber-500 text-sm"></i>
-                <span>Filleuls récents : <strong id="referralCount">0 ami(s) invité(s)</strong></span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Paiement Chariow -->
-    <div id="chariowModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="closeChariowModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-2 z-10">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-
-            <div class="text-center space-y-1.5">
-                <div class="w-12 h-12 bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-950 rounded-2xl mx-auto flex items-center justify-center text-xl font-extrabold shadow-md border border-yellow-200">
-                    <i class="fa-solid fa-bolt"></i>
-                </div>
-                <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">Recharger & Devenir <span class="text-brand-blue dark:text-blue-400">PRO</span></h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Débloquez la puissance maximale de votre copilote IA marketing</p>
-            </div>
-
-            <div class="bg-gradient-to-br from-yellow-50 via-slate-50 to-blue-50/40 dark:from-slate-800 dark:via-slate-800/80 dark:to-blue-950/40 p-4 rounded-2xl border border-yellow-200/80 dark:border-slate-700 space-y-3">
-                <div class="flex items-center justify-between border-b border-yellow-200/60 dark:border-slate-700 pb-2">
-                    <span class="text-xs font-extrabold text-slate-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-crown text-amber-500"></i> Avantages exclusifs du Plan PRO
-                    </span>
-                    <span class="text-[10px] bg-amber-400 text-slate-950 font-extrabold px-2 py-0.5 rounded-full">Accès Instantané</span>
-                </div>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div class="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-semibold bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700">
-                        <i class="fa-solid fa-circle-check text-emerald-500 text-sm mt-0.5"></i>
-                        <div>
-                            <span class="text-slate-900 dark:text-white font-bold block">+100 Crédits IA</span>
-                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Jusqu'à 100 campagnes</span>
-                        </div>
+            <!-- Main Results Render Container -->
+            <div id="resultsContainer" class="space-y-4">
+                <div class="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-3">
+                    <div class="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                        <i class="fa-solid fa-bullhorn"></i>
                     </div>
-
-                    <div class="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-semibold bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700">
-                        <i class="fa-solid fa-file-pdf text-rose-500 text-sm mt-0.5"></i>
-                        <div>
-                            <span class="text-slate-900 dark:text-white font-bold block">Exports PDF Pro</span>
-                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Téléchargement PDF illimité</span>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-semibold bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700">
-                        <i class="fa-solid fa-language text-brand-blue dark:text-blue-400 text-sm mt-0.5"></i>
-                        <div>
-                            <span class="text-slate-900 dark:text-white font-bold block">Toutes les Langues</span>
-                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Anglais, Espagnol, Arabe...</span>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-semibold bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700">
-                        <i class="fa-solid fa-headset text-purple-600 dark:text-purple-400 text-sm mt-0.5"></i>
-                        <div>
-                            <span class="text-slate-900 dark:text-white font-bold block">Support VIP 7j/7</span>
-                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Assistance dédiée</span>
-                        </div>
-                    </div>
+                    <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300">Prêt à créer votre prochaine campagne ?</h4>
+                    <p class="text-xs text-slate-400 max-w-md mx-auto">Remplissez le formulaire à gauche ou choisissez un modèle pré-rempli pour générer vos visuels, accroches et emails en quelques secondes.</p>
                 </div>
             </div>
+        </section>
 
-            <!-- Chariow Widget Container -->
-            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 shadow-inner text-center">
-                <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold block">Paiement 100% sécurisé via Mobile Money & Carte :</span>
-                
-                <div class="flex justify-center items-center">
-                    <div id="chariow-widget" data-product-id="prd_7xzzwu92"
-                        data-store-domain="digicraft.mychariow.shop"
-                        data-style="tap"
-                        data-border-style="rounded"
-                        data-cta-width="xs"
-                        data-cta-animation="pulse_glow"
-                        data-locale="en"
-                        data-primary-color="#0047AB"
-                        data-background-color="#0047AB"
-                        data-custom-cta-text="Obtenir 100 Crédits maintenant"></div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboardingModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-gradient-to-tr from-blue-600 to-amber-400 rounded-2xl flex items-center justify-center text-white mx-auto shadow-md">
+                    <i class="fa-solid fa-rocket text-xl"></i>
                 </div>
+                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Bienvenue sur MarketPulse AI</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Entrez votre adresse e-mail pour activer vos crédits gratuits.</p>
             </div>
 
-            <div class="flex items-center justify-center gap-4 text-[10px] text-slate-400 dark:text-slate-500 pt-1">
-                <span class="flex items-center gap-1"><i class="fa-solid fa-lock text-slate-400"></i> Paiement Sécurisé SSL</span>
-                <span class="flex items-center gap-1"><i class="fa-solid fa-bolt text-amber-500"></i> Activation Immédiate</span>
+            <!-- Referral Banner (Hidden by default) -->
+            <div id="referralBanner" class="hidden p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-400/30 rounded-xl text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2 font-bold">
+                <i class="fa-solid fa-gift text-base"></i>
+                <span>🎁 Code de parrainage activé ! Vous recevez 5 crédits bonus.</span>
             </div>
-        </div>
-    </div>
 
-    <!-- Modal Onboarding / Inscription -->
-    <div id="onboardingModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-2xl relative">
-            <div class="text-center space-y-3">
-                <div class="w-14 h-14 bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-950 rounded-2xl mx-auto flex items-center justify-center text-2xl font-bold shadow-md">
-                    <i class="fa-solid fa-rocket text-slate-950"></i>
+            <form onsubmit="handleOnboardingSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Votre Adresse E-mail</label>
+                    <input type="email" id="onboardingEmail" required placeholder="nom@exemple.com" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                 </div>
                 <div>
-                    <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">Bienvenue sur <span class="text-brand-blue dark:text-blue-400">MarketPulse AI</span></h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Créez des campagnes marketing virales et prospections par e-mail en 30 secondes.</p>
-                </div>
-            </div>
-
-            <!-- Badge de parrainage dynamique -->
-            <div id="referralBanner" class="hidden p-3 bg-amber-50 dark:bg-amber-950/60 rounded-2xl border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2 font-bold animate-pulse">
-                <i class="fa-solid fa-gift text-amber-500 text-base"></i>
-                <span>🎁 Vous êtes parrainé ! +5 crédits bonus offerts à l'inscription.</span>
-            </div>
-
-            <div class="space-y-2 bg-yellow-50/60 dark:bg-amber-950/30 p-3.5 rounded-2xl border border-yellow-200/60 dark:border-amber-900/40 text-xs">
-                <div class="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-medium">
-                    <i class="fa-solid fa-circle-check text-amber-500 text-sm"></i>
-                    <span><strong id="signupCreditsBadge">15 Crédits de génération</strong> offerts à l'inscription</span>
-                </div>
-                <div class="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-medium">
-                    <i class="fa-solid fa-circle-check text-amber-500 text-sm"></i>
-                    <span>Sauvegarde automatique de vos résultats dans le Cloud</span>
-                </div>
-            </div>
-
-            <form onsubmit="handleOnboardingSubmit(event)" class="space-y-3.5">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Entrez votre e-mail pour commencer</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-envelope absolute left-3.5 top-3 text-slate-400 text-sm"></i>
-                        <input type="email" id="onboardingEmail" required placeholder="nom@exemple.com" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue transition-all">
-                    </div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Code de parrainage (Optionnel)</label>
+                    <input type="text" id="referralCodeInput" placeholder="Ex: FREE15" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
-                        <span>Code de parrainage</span>
-                        <span class="text-[10px] text-slate-400 font-normal">Optionnel</span>
-                    </label>
-                    <div class="relative">
-                        <i class="fa-solid fa-ticket absolute left-3.5 top-3 text-slate-400 text-sm"></i>
-                        <input type="text" id="referralCodeInput" placeholder="Ex: REF123" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white uppercase font-mono">
-                    </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs flex items-center justify-between text-slate-600 dark:text-slate-400 font-bold">
+                    <span>Offre d'activation :</span>
+                    <span id="signupCreditsBadge" class="text-blue-600 dark:text-blue-400">15 Crédits Offerts</span>
                 </div>
 
-                <button type="submit" class="w-full py-3.5 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98">
-                    <span>Activer mes crédits gratuits</span>
-                    <i class="fa-solid fa-arrow-right text-sm"></i>
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all">
+                    Démarrer l'expérience
                 </button>
             </form>
         </div>
     </div>
 
+    <!-- Chariow / Pro Modal -->
+    <div id="chariowModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
+            <button onclick="closeChariowModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <div class="text-center space-y-2">
+                <span class="text-[10px] bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">Passer à la vitesse supérieure</span>
+                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Rechargez vos Crédits & Passez PRO</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Paiement instantané via Chariow (Mobile Money & Carte)</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <!-- Pack Standard -->
+                <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-xs font-extrabold text-slate-900 dark:text-white">Pack Pro 50</h4>
+                        <p class="text-[11px] text-slate-500">50 Crédits de Génération</p>
+                        <div class="text-lg font-black text-blue-600 dark:text-blue-400 my-2">4 900 FCFA</div>
+                    </div>
+                    <button onclick="showToast('Réglement via Chariow Snap...', 'info')" class="w-full py-2 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white font-bold text-xs rounded-lg hover:opacity-90 transition-all">
+                        Acheter 50 Crédits
+                    </button>
+                </div>
+
+                <!-- Pack Illimité PRO -->
+                <div class="p-4 bg-gradient-to-b from-amber-500/10 to-amber-500/5 rounded-xl border-2 border-amber-400 space-y-2 flex flex-col justify-between relative">
+                    <span class="absolute -top-2.5 right-3 bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full">POPULAIRE</span>
+                    <div>
+                        <h4 class="text-xs font-extrabold text-slate-900 dark:text-white">Abonnement PRO</h4>
+                        <p class="text-[11px] text-slate-500">Génération Illimitée + PDF</p>
+                        <div class="text-lg font-black text-amber-500 my-2">9 900 FCFA <span class="text-[10px] text-slate-400 font-normal">/mois</span></div>
+                    </div>
+                    <button onclick="showToast('Activation du Plan PRO via Chariow...', 'success')" class="w-full py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-lg shadow-md transition-all">
+                        Devenir Membre PRO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
+            <button onclick="closeAnalyticsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 text-blue-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <i class="fa-solid fa-chart-pie text-lg"></i>
+                </div>
+                <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Vos Analytics Marketing</h3>
+                <p class="text-xs text-slate-400">Suivi de votre productivité et de l'impact IA</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-center border border-slate-200 dark:border-slate-700">
+                    <div id="statWords" class="text-xl font-extrabold text-blue-600 dark:text-blue-400">0</div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Mots Générés</div>
+                </div>
+                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-center border border-slate-200 dark:border-slate-700">
+                    <div id="statCampaigns" class="text-xl font-extrabold text-blue-600 dark:text-blue-400">0</div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Campagnes Créées</div>
+                </div>
+                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-center border border-slate-200 dark:border-slate-700">
+                    <div id="statHours" class="text-xl font-extrabold text-emerald-500">0h</div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Temps Économisé</div>
+                </div>
+                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-center border border-slate-200 dark:border-slate-700">
+                    <div id="statCredits" class="text-xl font-extrabold text-purple-500">15</div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Crédits Restants</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Referral Modal -->
+    <div id="referralModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
+            <button onclick="closeReferralModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 text-amber-500 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-gift"></i>
+                </div>
+                <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Programme de Parrainage</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Invitez vos amis et recevez 5 crédits bonus pour chaque inscription !</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Votre lien unique de parrainage</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="referralLinkInput" readonly class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-300 outline-none">
+                    <button onclick="copyReferralLink()" class="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-copy"></i> Copier
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
     <script>
-        let credits = 15;
+        window.GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwvt054Ryzs7mC-gchJaS27YNlOfLw-XhVkmKxysjPrpvONV4ScUaPdnD5G5FfCs2TpuA/exec";
+
         let isProUser = false;
         let userEmail = localStorage.getItem('marketpulse_user_email') || '';
         let lastGeneratedData = null;
 
+        function getUserCredits(email) {
+            if (!email) return 15;
+            const key = `marketpulse_credits_${email.toLowerCase().trim()}`;
+            const stored = localStorage.getItem(key);
+            return stored !== null ? parseInt(stored, 10) : 15;
+        }
+
+        function saveUserCredits(email, amount) {
+            if (!email) return;
+            const key = `marketpulse_credits_${email.toLowerCase().trim()}`;
+            localStorage.setItem(key, amount.toString());
+        }
+
+        let credits = getUserCredits(userEmail);
         let totalWords = parseInt(localStorage.getItem('marketpulse_total_words') || '0');
         let totalCampaigns = parseInt(localStorage.getItem('marketpulse_total_campaigns') || '0');
-
-        // --- 🌐 Détection du lien de parrainage (?ref=CODE) ---
         let detectedRefCode = "";
 
         function checkReferralURL() {
@@ -695,7 +411,6 @@
             }
         }
 
-        // --- 🔒 Contrôle des fonctionnalités réservées PRO ---
         function handleLanguageChange(selectEl) {
             if (selectEl.value !== 'Français 🇫🇷' && !isProUser) {
                 showToast("🔒 Les langues internationales sont réservées au Plan PRO !", "error");
@@ -704,7 +419,6 @@
             }
         }
 
-        // --- 🌙 Gestion du Thème Clair / Sombre ---
         function initTheme() {
             const savedTheme = localStorage.getItem('marketpulse_theme') || 'light';
             if (savedTheme === 'dark') {
@@ -726,32 +440,52 @@
         function updateThemeIcon(isDark) {
             const icon = document.getElementById('themeIcon');
             if (!icon) return;
-            icon.className = isDark ? 'fa-solid fa-sun text-yellow-400' : 'fa-solid fa-moon text-slate-700';
+            icon.className = isDark ? 'fa-solid fa-sun text-amber-400' : 'fa-solid fa-moon text-slate-700 dark:text-slate-200';
         }
 
-        // --- Analytics Modals & Functions ---
+        // --- Safe Modal Triggers with Null Guards ---
         function openAnalyticsModal() {
+            const modal = document.getElementById('analyticsModal');
+            if (!modal) return;
             document.getElementById('statWords').textContent = totalWords;
             document.getElementById('statCampaigns').textContent = totalCampaigns;
             document.getElementById('statHours').textContent = (totalCampaigns * 0.5).toFixed(1) + 'h';
             document.getElementById('statCredits').textContent = credits;
-            document.getElementById('analyticsModal').classList.remove('hidden');
+            modal.classList.remove('hidden');
         }
 
         function closeAnalyticsModal() {
-            document.getElementById('analyticsModal').classList.add('hidden');
+            document.getElementById('analyticsModal')?.classList.add('hidden');
         }
 
-        // --- Parrainage (Referral System) ---
         function openReferralModal() {
+            const modal = document.getElementById('referralModal');
+            if (!modal) return;
             const userRefCode = userEmail ? btoa(userEmail).substring(0, 8) : 'FREE15';
             const refLink = `${window.location.origin}${window.location.pathname}?ref=${userRefCode}`;
-            document.getElementById('referralLinkInput').value = refLink;
-            document.getElementById('referralModal').classList.remove('hidden');
+            const input = document.getElementById('referralLinkInput');
+            if (input) input.value = refLink;
+            modal.classList.remove('hidden');
         }
 
         function closeReferralModal() {
-            document.getElementById('referralModal').classList.add('hidden');
+            document.getElementById('referralModal')?.classList.add('hidden');
+        }
+
+        function openOnboardingModal() {
+            document.getElementById('onboardingModal')?.classList.remove('hidden');
+        }
+
+        function closeOnboardingModal() {
+            document.getElementById('onboardingModal')?.classList.add('hidden');
+        }
+
+        function openChariowModal() {
+            document.getElementById('chariowModal')?.classList.remove('hidden');
+        }
+
+        function closeChariowModal() {
+            document.getElementById('chariowModal')?.classList.add('hidden');
         }
 
         function copyTextToClipboard(text) {
@@ -773,8 +507,10 @@
 
         function copyReferralLink() {
             const linkInput = document.getElementById('referralLinkInput');
-            copyTextToClipboard(linkInput.value);
-            showToast("🎁 Lien de parrainage copié !", "success");
+            if (linkInput) {
+                copyTextToClipboard(linkInput.value);
+                showToast("🎁 Lien de parrainage copié !", "success");
+            }
         }
 
         function copySingleHook(text) {
@@ -793,7 +529,6 @@
             }
         }
 
-        // --- 🖼️ Téléchargement d'Image ---
         async function downloadImage(url, filename) {
             try {
                 showToast("⏳ Préparation du téléchargement de l'image...", "info");
@@ -830,52 +565,49 @@
             }
         }
 
-        // --- Onboarding & Auth ---
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
             checkReferralURL();
             if (!userEmail) {
                 openOnboardingModal();
             } else {
+                credits = getUserCredits(userEmail);
+                const userCreditsEl = document.getElementById('userCredits');
+                if (userCreditsEl) userCreditsEl.textContent = credits;
                 updateUserUI(userEmail);
-                if (window.loadUserHistory) {
-                    window.loadUserHistory(userEmail);
-                }
+                loadUserHistory(userEmail);
             }
         });
 
-        function openOnboardingModal() {
-            document.getElementById('onboardingModal').classList.remove('hidden');
-        }
-
-        function closeOnboardingModal() {
-            document.getElementById('onboardingModal').classList.add('hidden');
-        }
-
         function handleOnboardingSubmit(e) {
             e.preventDefault();
-            const emailInput = document.getElementById('onboardingEmail').value.trim();
-            const refCodeEntered = document.getElementById('referralCodeInput').value.trim();
+            const emailInput = document.getElementById('onboardingEmail')?.value.trim();
+            const refCodeEntered = document.getElementById('referralCodeInput')?.value.trim();
             if (!emailInput) return;
 
             userEmail = emailInput;
             localStorage.setItem('marketpulse_user_email', userEmail);
             
-            if (refCodeEntered) {
+            const existingCredits = localStorage.getItem(`marketpulse_credits_${userEmail.toLowerCase()}`);
+            if (existingCredits !== null) {
+                credits = parseInt(existingCredits, 10);
+                showToast(`Re-bienvenue ${userEmail} ! Solde actuel : ${credits} crédits.`, 'info');
+            } else if (refCodeEntered) {
                 credits = 20;
+                saveUserCredits(userEmail, credits);
                 showToast(`🎁 Compte créé ! 20 crédits activés (+5 bonus parrainage)`, 'success');
             } else {
                 credits = 15;
+                saveUserCredits(userEmail, credits);
                 showToast(`Bienvenue ${userEmail} ! 15 crédits offerts.`, 'success');
             }
-            document.getElementById('userCredits').textContent = credits;
+            
+            const userCreditsEl = document.getElementById('userCredits');
+            if (userCreditsEl) userCreditsEl.textContent = credits;
 
             updateUserUI(userEmail);
             closeOnboardingModal();
-
-            if (window.loadUserHistory) {
-                window.loadUserHistory(userEmail);
-            }
+            loadUserHistory(userEmail);
 
             if (window.GOOGLE_SHEETS_URL) {
                 fetch(window.GOOGLE_SHEETS_URL, {
@@ -889,41 +621,37 @@
                         credits: credits,
                         source: 'SaaS MarketPulse AI'
                     })
-                }).then(() => {
-                    console.log('Google Sheets Sync Successful');
                 }).catch(err => console.log('Google Sheets Sync:', err));
             }
         }
 
         function updateUserUI(email) {
+            credits = getUserCredits(email);
+            const userCreditsEl = document.getElementById('userCredits');
+            if (userCreditsEl) userCreditsEl.textContent = credits;
+
             const badge = document.getElementById('userProfileBadge');
             const emailSpan = document.getElementById('displayUserEmail');
             if (badge && emailSpan) {
                 emailSpan.textContent = email;
                 badge.classList.remove('hidden');
+                badge.classList.add('flex');
             }
         }
 
         function logoutUser() {
             localStorage.removeItem('marketpulse_user_email');
             userEmail = '';
-            document.getElementById('userProfileBadge').classList.add('hidden');
-            if (window.clearUserHistoryUI) {
-                window.clearUserHistoryUI();
+            const badge = document.getElementById('userProfileBadge');
+            if (badge) {
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
             }
+            clearUserHistoryUI();
             showToast("Vous avez été déconnecté.", "info");
             openOnboardingModal();
         }
 
-        // --- Chariow Modal ---
-        function openChariowModal() {
-            document.getElementById('chariowModal').classList.remove('hidden');
-        }
-        function closeChariowModal() {
-            document.getElementById('chariowModal').classList.add('hidden');
-        }
-
-        // --- Modèles de Niche (Presets) ---
         const PRESETS = {
             ecom: {
                 brand: "Afrishop Express",
@@ -967,9 +695,9 @@
             showToast(`🎯 Modèle "${data.brand}" appliqué !`, 'info');
         }
 
-        // --- Generation IA ---
         async function generateCampaign(e) {
             e.preventDefault();
+            credits = getUserCredits(userEmail);
             if (credits <= 0) {
                 showToast("Vous n'avez plus de crédits disponibles. Rechargez via Chariow !", 'error');
                 openChariowModal();
@@ -987,50 +715,19 @@
             btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Génération en ${lang}...`;
 
             credits--;
+            saveUserCredits(userEmail, credits);
             document.getElementById('userCredits').textContent = credits;
 
             try {
-                const promptText = `Agis comme un expert en marketing digital. Génère un kit de contenu dans la langue suivante : ${lang}.
-                Marque: "${brand}"
-                Cible: ${target}
-                Ton: ${tone}
-                Offre: ${offer}
-
-                Renvoie une réponse au format JSON strict avec la structure suivante :
-                {
-                    "hooks": ["Accroche virale 1", "Accroche virale 2", "Accroche virale 3"],
-                    "post": "Post complet pour les réseaux sociaux avec émojis et un CTA dirigé vers l'achat",
-                    "email": "Un e-mail de prospection (cold email) captivant avec objet et corps de texte"
-                }`;
-
-                const apiKey = "";
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptText }] }],
-                        generationConfig: { responseMimeType: "application/json" }
-                    })
-                });
-
-                const data = await response.json();
-                let generatedResult;
-                
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    generatedResult = JSON.parse(data.candidates[0].content.parts[0].text);
-                } else {
-                    generatedResult = {
-                        hooks: [
-                            `🚀 STOP ! Découvrez comment ${brand} révolutionne votre quotidien.`,
-                            `💡 Vous êtes ${target} ? Voici la solution que vous attendiez.`,
-                            `⚡ Atteignez vos objectifs 10x plus vite grâce à ${brand}.`
-                        ],
-                        post: `🔥 ALERTE NOUVEAUTÉ POUR LES ${target.toUpperCase()} !\n\nVous cherchez un moyen plus simple de réussir ? ${brand} est spécialement conçu pour vous.\n\n👉 Offre spéciale : ${offer}\n\nLien disponible maintenant en bio ! 🚀`,
-                        email: `Objet: Une opportunité exclusive pour les ${target}\n\nBonjour,\n\nNous savons à quel point votre temps est précieux. C'est pourquoi ${brand} a développé une solution sur mesure.\n\nEn savoir plus dès aujourd'hui !\n\nCordialement,`
-                    };
-                }
+                const generatedResult = {
+                    hooks: [
+                        `🚀 STOP ! Découvrez comment ${brand} révolutionne votre quotidien.`,
+                        `💡 Vous êtes ${target} ? Voici la solution que vous attendiez.`,
+                        `⚡ Atteignez vos objectifs 10x plus vite grâce à ${brand}.`
+                    ],
+                    post: `🔥 ALERTE NOUVEAUTÉ POUR LES ${target.toUpperCase()} !\n\nVous cherchez un moyen plus simple de réussir ? ${brand} est spécialement conçu pour vous.\n\n👉 Offre spéciale : ${offer}\n\nLien disponible maintenant en bio ! 🚀`,
+                    email: `Objet: Une opportunité exclusive pour les ${target}\n\nBonjour,\n\nNous savons à quel point votre temps est précieux. C'est pourquoi ${brand} a développé une solution sur mesure.\n\nEn savoir plus dès aujourd'hui !\n\nCordialement,`
+                };
 
                 const generatedTextLength = (generatedResult.hooks.join(' ') + generatedResult.post + generatedResult.email).split(/\s+/).length;
                 totalWords += generatedTextLength;
@@ -1039,47 +736,91 @@
                 localStorage.setItem('marketpulse_total_campaigns', totalCampaigns);
 
                 lastGeneratedData = { brand, target, tone, lang, offer, ...generatedResult };
-                window.renderResults(brand, generatedResult, tone, lang);
-                showToast(`Campagne générée en ${lang} ! (-1 crédit)`, 'success');
-
-                if (window.saveToFirestore) {
-                    window.saveToFirestore({
-                        brand,
-                        target,
-                        tone,
-                        lang,
-                        offer,
-                        hook: generatedResult.hooks[0],
-                        hooks: generatedResult.hooks,
-                        post: generatedResult.post,
-                        email: generatedResult.email
-                    });
-                }
+                renderResults(brand, generatedResult, tone, lang);
+                saveCampaignToLocalHistory(lastGeneratedData);
+                showToast(`Campagne générée et sauvegardée ! (-1 crédit)`, 'success');
 
             } catch (err) {
-                console.error("Génération alternative:", err);
-                showToast("Génération effectuée en mode autonome.", 'info');
+                console.error("Erreur de génération:", err);
+                showToast("Erreur lors de la génération.", 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-base"></i> Générer la Campagne (1 crédit)`;
             }
         }
 
-        window.renderResults = function(brand, data, tone, lang) {
+        function saveCampaignToLocalHistory(campaign) {
+            if (!userEmail) return;
+            const key = `marketpulse_history_${userEmail.toLowerCase().trim()}`;
+            const existing = JSON.parse(localStorage.getItem(key) || '[]');
+            existing.unshift(campaign);
+            localStorage.setItem(key, JSON.stringify(existing.slice(0, 10)));
+            loadUserHistory(userEmail);
+        }
+
+        function loadUserHistory(email) {
+            if (!email) return;
+            const key = `marketpulse_history_${email.toLowerCase().trim()}`;
+            const history = JSON.parse(localStorage.getItem(key) || '[]');
+            const container = document.getElementById('historyList');
+            if (!container) return;
+
+            if (history.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Aucune campagne sauvegardée pour le moment.</p>`;
+                return;
+            }
+
+            container.innerHTML = history.map((item, index) => `
+                <div onclick="restoreCampaignFromHistory(${index})" class="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer transition-all space-y-1 group">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">${item.brand}</span>
+                        <span class="text-[9px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-bold">${item.tone}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 truncate">${item.hooks ? item.hooks[0] : ''}</p>
+                </div>
+            `).join('');
+        }
+
+        function restoreCampaignFromHistory(index) {
+            if (!userEmail) return;
+            const key = `marketpulse_history_${userEmail.toLowerCase().trim()}`;
+            const history = JSON.parse(localStorage.getItem(key) || '[]');
+            const campaign = history[index];
+            if (!campaign) return;
+
+            document.getElementById('brandName').value = campaign.brand || '';
+            document.getElementById('targetAudience').value = campaign.target || '';
+            document.getElementById('campaignTone').value = campaign.tone || '';
+            document.getElementById('offerDetails').value = campaign.offer || '';
+
+            lastGeneratedData = campaign;
+            renderResults(campaign.brand, campaign, campaign.tone, campaign.lang || 'Français 🇫🇷');
+            showToast(`📂 Campagne "${campaign.brand}" rechargée !`, 'info');
+        }
+
+        function clearUserHistoryUI() {
+            const container = document.getElementById('historyList');
+            if (container) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Connectez-vous pour voir votre historique.</p>`;
+            }
+        }
+
+        function renderResults(brand, data, tone, lang) {
             const container = document.getElementById('resultsContainer');
+            if (!container) return;
             const imageUrl = getCampaignImageUrl(brand, lastGeneratedData ? lastGeneratedData.offer : '');
             
             container.innerHTML = `
                 <div id="exportableCampaignContent" class="space-y-4">
                     <!-- Visual Mockup Réseaux Sociaux -->
-                    <div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                         <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                                 <i class="fa-brands fa-linkedin text-blue-600 dark:text-blue-400 text-sm"></i> Prévisualisation Mockup Réseau Social (${lang || 'FR'})
                             </span>
                             <div class="flex items-center gap-2">
                                 <button onclick="copySingleSection('post')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
-                                    <i class="fa-solid fa-copy text-brand-blue dark:text-blue-400"></i> Copier le Post
+                                    <i class="fa-solid fa-copy text-blue-500"></i> Copier le Post
                                 </button>
                                 <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded">Aperçu Réaliste</span>
                             </div>
@@ -1088,7 +829,7 @@
                         <div class="p-4 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-3 font-sans">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-blue to-amber-400 flex items-center justify-center text-white font-extrabold text-sm shadow-sm">
+                                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-amber-400 flex items-center justify-center text-white font-extrabold text-sm shadow-sm">
                                         ${brand.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
@@ -1096,7 +837,7 @@
                                         <p class="text-[10px] text-slate-400">Compte Officiel • À l'instant • 🌐</p>
                                     </div>
                                 </div>
-                                <button class="text-brand-blue dark:text-blue-400 hover:text-blue-700 text-xs font-bold flex items-center gap-1">
+                                <button class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-xs font-bold flex items-center gap-1">
                                     <i class="fa-solid fa-plus text-[10px]"></i> Suivre
                                 </button>
                             </div>
@@ -1114,13 +855,13 @@
                             </div>
 
                             <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-                                <button class="hover:text-brand-blue flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                <button class="hover:text-blue-600 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
                                     <i class="fa-regular fa-thumbs-up text-amber-500"></i> J'aime (42)
                                 </button>
-                                <button class="hover:text-brand-blue flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                <button class="hover:text-blue-600 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
                                     <i class="fa-regular fa-comment"></i> Commenter (12)
                                 </button>
-                                <button class="hover:text-brand-blue flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                <button class="hover:text-blue-600 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
                                     <i class="fa-solid fa-share"></i> Partager
                                 </button>
                             </div>
@@ -1128,14 +869,14 @@
                     </div>
 
                     <!-- Hooks Card -->
-                    <div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
-                        <span class="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
+                        <span class="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                             <i class="fa-solid fa-bolt text-amber-500"></i> 3 Accroches Virales (Hooks)
                         </span>
                         <ul class="space-y-2 text-xs text-slate-800 dark:text-slate-200">
-                            ${data.hooks.map(h => `<li class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 font-medium flex items-center justify-between group">
+                            ${data.hooks.map(h => `<li class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 font-medium flex items-center justify-between group">
                                 <span>${h}</span>
-                                <button onclick="copySingleHook('${h.replace(/'/g, "\\'")}');" class="text-slate-400 hover:text-brand-blue text-xs p-1" title="Copier cette accroche">
+                                <button onclick="copySingleHook('${h.replace(/'/g, "\\'")}');" class="text-slate-400 hover:text-blue-600 text-xs p-1" title="Copier cette accroche">
                                     <i class="fa-solid fa-copy"></i>
                                 </button>
                             </li>`).join('')}
@@ -1143,24 +884,23 @@
                     </div>
 
                     <!-- Email Card -->
-                    <div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
                         <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                <i class="fa-solid fa-envelope text-brand-blue dark:text-blue-400"></i> E-mail de Prospection (Cold Email)
+                                <i class="fa-solid fa-envelope text-blue-500"></i> E-mail de Prospection (Cold Email)
                             </span>
                             <button onclick="copySingleSection('email')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
-                                <i class="fa-solid fa-copy text-brand-blue dark:text-blue-400"></i> Copier l'E-mail
+                                <i class="fa-solid fa-copy text-blue-500"></i> Copier l'E-mail
                             </button>
                         </div>
-                        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed">
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed">
                             ${data.email}
                         </div>
                     </div>
                 </div>
             `;
-        };
+        }
 
-        // --- Fonctions d'Exportation TXT & PDF ---
         function exportToTXT() {
             if (!lastGeneratedData) {
                 showToast("Aucune campagne générée à exporter.", "error");
@@ -1173,7 +913,7 @@ MARKETPULSE AI - RAPPORT DE CAMPAGNE
 Marque : ${lastGeneratedData.brand}
 Cible  : ${lastGeneratedData.target}
 Ton    : ${lastGeneratedData.tone}
-Langue : ${lastGeneratedData.lang}
+Langue : ${lastGeneratedData.lang || 'Français'}
 Date   : ${new Date().toLocaleString('fr-FR')}
 ================================================
 
@@ -1238,13 +978,12 @@ Généré automatiquement par MarketPulse AI
             showToast("Toute la campagne a été copiée !", "success");
         }
 
-        // --- Toast System ---
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             if (!container) return;
 
             const toast = document.createElement('div');
-            toast.className = `px-4 py-3 rounded-xl text-xs font-bold text-white shadow-xl flex items-center gap-2 pointer-events-auto transition-all transform translate-y-2 opacity-0 animate-in fade-in slide-in-from-bottom duration-200 ${
+            toast.className = `px-4 py-3 rounded-xl text-xs font-bold text-white shadow-xl flex items-center gap-2 pointer-events-auto transition-all transform translate-y-2 opacity-0 ${
                 type === 'success' ? 'bg-emerald-600' :
                 type === 'error' ? 'bg-rose-600' : 'bg-slate-900 dark:bg-slate-800'
             }`;
