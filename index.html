@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="fr" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MarketPulse AI - Studio Omnicanal Pro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- html2pdf.js pour export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script>
+        // CONFIGURATION GOOGLE SHEETS DÉPLOYÉE
+        window.GOOGLE_SHEETS_URL = localStorage.getItem('google_sheets_url') || "https://script.google.com/macros/s/AKfycbwvt054Ryzs7mC-gchJaS27YNlOfLw-XhVkmKxysjPrpvONV4ScUaPdnD5G5FfCs2TpuA/exec";
+
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0047AB',
+                            navy: '#0B192C',
+                            yellow: '#FFCC00',
+                            yellowLight: '#FFF8D6',
+                            yellowHover: '#E6B800',
+                            grayBg: '#F8FAFC'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .light-card {
+            background: #ffffff;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 4px 20px -2px rgba(11, 25, 44, 0.05);
+        }
+        .dark .light-card {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FFCC00;
+            border-radius: 9999px;
+        }
+    </style>
+
+    <!-- Chariow Widget Official SDK Script -->
+    <script>
+    (function() {
+      var script = document.createElement('script');
+      script.src = 'https://js.chariowcdn.com/v1/widget.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://js.chariowcdn.com/v1/widget.min.css';
+      document.head.appendChild(link);
+    })();
+    </script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-yellow-400 selection:text-slate-900 pb-16 md:pb-0 transition-colors duration-200">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'marketpulse-saas-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "demo-key",
+                authDomain: "demo-app.firebaseapp.com",
+                projectId: "demo-app",
+                storageBucket: "demo-app.appspot.com",
+                messagingSenderId: "123456789",
+                appId: "1:123456789:web:abcdef"
+            };
+
+        let app, db, auth, currentUser = null;
+
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            };
+            await initAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('cloudStatus').innerHTML = `
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-xs text-slate-600 dark:text-slate-400 font-semibold">Cloud Synchronisé</span>
+                    `;
+                    listenToCloudHistory(user.uid);
+                }
+            });
+        } catch(e) {
+            console.warn("Firestore running in fallback mode:", e);
+        }
+
+        window.saveToFirestore = async function(contentItem) {
+            if (!currentUser || !db) return;
+            try {
+                const historyRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'history');
+                const newDocRef = doc(historyRef);
+                await setDoc(newDocRef, {
+                    ...contentItem,
+                    createdAt: serverTimestamp()
+                });
+            } catch(err) {
+                console.error("Error saving to Firestore:", err);
+            }
+        };
+
+        function listenToCloudHistory(userId) {
+            if (!db) return;
+            const historyRef = collection(db, 'artifacts', appId, 'users', userId, 'history');
+            onSnapshot(historyRef, (snapshot) => {
+                const cloudHistory = [];
+                snapshot.forEach(doc => cloudHistory.push({ id: doc.id, ...doc.data() }));
+                renderCloudHistory(cloudHistory);
+            }, (err) => console.log("Firestore snapshot info:", err));
+        }
+
+        function renderCloudHistory(historyData) {
+            const listEl = document.getElementById('cloudHistoryList');
+            if (!listEl) return;
+            if (historyData.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 italic text-center py-4">Aucun projet sauvegardé dans le Cloud.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = historyData.map(item => `
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex flex-col gap-1.5 shadow-sm">
+                    <div class="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
+                        <span class="text-brand-blue dark:text-blue-400 flex items-center gap-1"><i class="fa-solid fa-bolt text-amber-500"></i>${item.brand || 'Campagne'}</span>
+                        <span class="text-[10px] bg-yellow-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded font-bold">${item.tone || 'Pro'}</span>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-400 line-clamp-2">${item.hook || item.email || ''}</p>
+                </div>
+            `).join('');
+        }
+    </script>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Accentuation Jaune Soleil -->
+    <div class="h-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-brand-blue w-full"></div>
+    <header class="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand & Cloud Indicator -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-brand-yellow flex items-center justify-center text-slate-950 font-extrabold shadow-md">
+                        <i class="fa-solid fa-chart-line text-lg text-slate-950"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">
+                                MarketPulse <span class="text-brand-blue dark:text-blue-400">AI</span>
+                            </span>
+                            <span id="userPlanBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                GRATUIT
+                            </span>
+                        </div>
+                        <div id="cloudStatus" class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Mode Local</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls & Actions -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- 📊 Bouton Analytics -->
+                    <button onclick="openAnalyticsModal()" title="Voir les statistiques" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-xs font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-chart-pie text-brand-blue dark:text-blue-400"></i>
+                        <span class="hidden md:inline">Analytics</span>
+                    </button>
+
+                    <!-- 🎁 Bouton Parrainage -->
+                    <button onclick="openReferralModal()" title="Inviter un ami (+5 crédits)" class="p-2 px-3 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 hover:bg-amber-200 transition-all text-xs font-extrabold flex items-center gap-1.5">
+                        <i class="fa-solid fa-gift text-amber-500"></i>
+                        <span class="hidden sm:inline">+5 Crédits</span>
+                    </button>
+
+                    <!-- Commutateur Mode Sombre / Mode Clair -->
+                    <button onclick="toggleTheme()" id="themeToggleBtn" title="Changer de thème" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-yellow-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-sm">
+                        <i id="themeIcon" class="fa-solid fa-moon"></i>
+                    </button>
+
+                    <div id="userProfileBadge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 font-semibold">
+                        <i class="fa-solid fa-user text-brand-blue dark:text-blue-400"></i>
+                        <span id="displayUserEmail" class="max-w-[120px] truncate">Compte</span>
+                        <button onclick="logoutUser()" title="Se déconnecter" class="ml-1 text-slate-400 hover:text-rose-600 transition-colors p-1">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2 px-3.5 py-1.5 bg-yellow-50 dark:bg-amber-950/40 rounded-xl border border-yellow-200 dark:border-amber-800/60 text-xs shadow-inner">
+                        <i class="fa-solid fa-coins text-amber-500 text-sm"></i>
+                        <span class="text-slate-600 dark:text-slate-300 font-medium hidden xs:inline">Crédits:</span>
+                        <span id="userCredits" class="font-extrabold text-slate-900 dark:text-amber-300 text-sm">15</span>
+                    </div>
+
+                    <button onclick="openChariowModal()" class="px-3.5 py-2 sm:px-4 rounded-xl bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                        <i class="fa-solid fa-bolt text-slate-950"></i>
+                        <span class="hidden sm:inline">Recharger / Passer Pro</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid lg:grid-cols-12 gap-6">
+        
+        <!-- Left Panel: Input & Campaign Config -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="light-card p-5 rounded-2xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <h2 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                        Studio de Création IA
+                    </h2>
+                    <span class="text-xs bg-slate-100 dark:bg-slate-800 text-brand-blue dark:text-blue-400 font-bold px-2.5 py-1 rounded-md">Omnicanal</span>
+                </div>
+
+                <!-- Modèles Rapides par Niche -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                        <span><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Modèles Pré-remplis (Presets)</span>
+                        <span class="text-[10px] text-slate-400 font-normal">1-Clic</span>
+                    </label>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="applyPreset('ecom')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">🛒 E-Commerce</button>
+                        <button type="button" onclick="applyPreset('coaching')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">🎓 Formation</button>
+                        <button type="button" onclick="applyPreset('immo')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">🏠 Immobilier</button>
+                        <button type="button" onclick="applyPreset('resto')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">🍽️ Restauration</button>
+                        <button type="button" onclick="applyPreset('b2b')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-yellow-100 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-all">💼 B2B / Agence</button>
+                    </div>
+                </div>
+
+                <form id="campaignForm" class="space-y-4" onsubmit="generateCampaign(event)">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Nom de votre Marque / Produit</label>
+                        <input type="text" id="brandName" required placeholder="Ex: Chariow Pay, AfroCourse" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Public Cible (Persona)</label>
+                        <input type="text" id="targetAudience" required placeholder="Ex: Solopreneurs Afrique, Agences" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue transition-all">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Ton du contenu</label>
+                            <select id="campaignTone" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue">
+                                <option value="Inspirant & Captivant">Inspirant</option>
+                                <option value="Urgent & Persuasif">Urgent (Vente)</option>
+                                <option value="Professionnel & Premium">Professionnel</option>
+                                <option value="Décontracté & Amusant">Amical</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                                <span>Langue</span>
+                                <span class="text-[9px] bg-amber-400 text-slate-950 font-extrabold px-1.5 py-0.2 rounded">PRO</span>
+                            </label>
+                            <select id="generationLanguage" onchange="handleLanguageChange(this)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue">
+                                <option value="Français 🇫🇷">Français 🇫🇷</option>
+                                <option value="English 🇬🇧">English 🇬🇧 🔒 PRO</option>
+                                <option value="Español 🇪🇸">Español 🇪🇸 🔒 PRO</option>
+                                <option value="العربية 🇸🇦">العربية 🇸🇦 🔒 PRO</option>
+                                <option value="Kiswahili 🇰🇪">Kiswahili 🇰🇪 🔒 PRO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Description de votre Offre</label>
+                        <textarea id="offerDetails" rows="3" required placeholder="Ex: Plateforme tout-en-un pour vendre vos cours..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue transition-all"></textarea>
+                    </div>
+
+                    <button type="submit" id="generateBtn" class="w-full py-3.5 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98">
+                        <i class="fa-solid fa-wand-magic-sparkles text-slate-950 text-base"></i>
+                        Générer la Campagne (1 crédit)
+                    </button>
+                </form>
+            </div>
+
+            <!-- Cloud Saved Items -->
+            <div class="light-card p-5 rounded-2xl shadow-sm">
+                <h3 class="font-bold text-sm text-slate-900 dark:text-white mb-3 flex items-center justify-between">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-cloud text-brand-blue dark:text-blue-400"></i>Historique Cloud</span>
+                    <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-brand-blue dark:text-blue-300 font-bold px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800">Firestore Realtime</span>
+                </h3>
+                <div id="cloudHistoryList" class="space-y-2 max-h-48 overflow-y-auto">
+                    <!-- Dynamic Cloud Items -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Results & Export Generator -->
+        <div class="lg:col-span-7 space-y-6">
+            <div class="light-card p-5 rounded-2xl space-y-5">
+                <div class="flex flex-wrap items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
+                    <h2 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-square-poll-vertical text-brand-blue dark:text-blue-400"></i>
+                        Résultat de la Campagne
+                    </h2>
+                    
+                    <!-- Exportation avec Cadenas PRO sur le PDF -->
+                    <div class="flex items-center gap-2">
+                        <button onclick="exportToTXT()" title="Télécharger au format texte" class="text-xs px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-file-lines text-emerald-600"></i> TXT
+                        </button>
+                        <button onclick="exportToPDF()" title="Télécharger en document PDF (Plan PRO)" class="text-xs px-3 py-1.5 bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 border border-amber-300 dark:border-amber-800 rounded-xl text-amber-950 dark:text-amber-200 font-extrabold flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-lock text-amber-600"></i> PDF PRO
+                        </button>
+                        <button onclick="copyGeneratedContent()" class="text-xs px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-copy text-brand-blue dark:text-blue-400"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Generated Content Container -->
+                <div id="resultsContainer" class="space-y-4">
+                    <div class="p-10 text-center text-slate-500 dark:text-slate-400 space-y-3">
+                        <div class="w-16 h-16 rounded-2xl bg-yellow-100 dark:bg-amber-900/30 border border-yellow-300 dark:border-amber-800 flex items-center justify-center mx-auto text-slate-900 dark:text-yellow-400 shadow-sm">
+                            <i class="fa-solid fa-rocket text-3xl text-amber-600 dark:text-amber-400"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-base">Prêt à créer du contenu à forte conversion ?</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">Remplissez les informations à gauche ou cliquez sur un <strong class="text-brand-blue dark:text-blue-400">Modèle Pré-rempli</strong> pour tester l'IA.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Mini Analytics -->
+    <div id="analyticsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-2xl relative">
+            <button onclick="closeAnalyticsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-2">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="text-center space-y-1.5">
+                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 text-brand-blue dark:text-blue-400 rounded-2xl mx-auto flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Vos Analytics Marketing</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Suivi de votre productivité et de l'impact de l'IA</p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span class="text-2xl font-extrabold text-brand-blue dark:text-blue-400 block" id="statWords">0</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Mots Générés</span>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span class="text-2xl font-extrabold text-amber-500 block" id="statCampaigns">0</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Campagnes Créées</span>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span class="text-2xl font-extrabold text-emerald-500 block" id="statHours">0h</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Temps Économisé</span>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span class="text-2xl font-extrabold text-purple-500 block" id="statCredits">15</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Crédits Restants</span>
+                </div>
+            </div>
+
+            <button onclick="openChariowModal()" class="w-full py-2.5 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-xs rounded-xl transition-all">
+                ⚡ Passer au Plan PRO pour Analytics Illimités
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Parrainage -->
+    <div id="referralModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-2xl relative">
+            <button onclick="closeReferralModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-2">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="text-center space-y-1.5">
+                <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 text-amber-500 rounded-2xl mx-auto flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-gift"></i>
+                </div>
+                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Invitez un ami, gagnez des crédits !</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Chaque ami inscrit via votre lien vous rapporte <strong>+5 crédits gratuits</strong>.</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Votre lien unique de parrainage :</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="referralLinkInput" readonly class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 font-mono">
+                    <button onclick="copyReferralLink()" class="px-4 py-2 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1">
+                        <i class="fa-solid fa-copy"></i> Copier
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-3 bg-yellow-50 dark:bg-amber-950/30 rounded-xl border border-yellow-200 dark:border-amber-900/50 text-xs text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <i class="fa-solid fa-users text-amber-500 text-sm"></i>
+                <span>Filleuls récents : <strong id="referralCount">0 ami(s) invité(s)</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Paiement Chariow -->
+    <div id="chariowModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeChariowModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-2 z-10">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="text-center space-y-1.5">
+                <div class="w-12 h-12 bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-950 rounded-2xl mx-auto flex items-center justify-center text-xl font-extrabold shadow-md border border-yellow-200">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">Recharger & Devenir <span class="text-brand-blue dark:text-blue-400">PRO</span></h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Débloquez la puissance maximale de votre copilote IA marketing</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-yellow-50 via-slate-50 to-blue-50/40 dark:from-slate-800 dark:via-slate-800/80 dark:to-blue-950/40 p-4 rounded-2xl border border-yellow-200/80 dark:border-slate-700 space-y-3">
+                <div class="flex items-center justify-between border-b border-yellow-200/60 dark:border-slate-700 pb-2">
+                    <span class="text-xs font-extrabold text-slate-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-crown text-amber-500"></i> Avantages exclusifs du Plan PRO
+                    </span>
+                    <span class="text-[10px] bg-amber-400 text-slate-950 font-extrabold px-2 py-0.5 rounded-full">Accès Instantané</span>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div class="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-semibold bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                        <i class="fa-solid fa-circle-check text-emerald-500 text-sm mt-0.5"></i>
+                        <div>
+                            <span class="text-slate-900 dark:text-white font-bold block">+100 Crédits IA</span>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Jusqu'à 100 campagnes</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-semibold bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                        <i class="fa-solid fa-file-pdf text-rose-500 text-sm mt-0.5"></i>
+                        <div>
+                            <span class="text-slate-900 dark:text-white font-bold block">Exports PDF Pro</span>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Téléchargement PDF illimité</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-semibold bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                        <i class="fa-solid fa-language text-brand-blue dark:text-blue-400 text-sm mt-0.5"></i>
+                        <div>
+                            <span class="text-slate-900 dark:text-white font-bold block">Toutes les Langues</span>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Anglais, Espagnol, Arabe...</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-semibold bg-white/80 dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                        <i class="fa-solid fa-headset text-purple-600 dark:text-purple-400 text-sm mt-0.5"></i>
+                        <div>
+                            <span class="text-slate-900 dark:text-white font-bold block">Support VIP 7j/7</span>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Assistance dédiée</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chariow Widget Container -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 shadow-inner text-center">
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold block">Paiement 100% sécurisé via Mobile Money & Carte :</span>
+                
+                <div class="flex justify-center items-center">
+                    <div id="chariow-widget" data-product-id="prd_7xzzwu92"
+                        data-store-domain="digicraft.mychariow.shop"
+                        data-style="tap"
+                        data-border-style="rounded"
+                        data-cta-width="xs"
+                        data-cta-animation="pulse_glow"
+                        data-locale="en"
+                        data-primary-color="#0047AB"
+                        data-background-color="#0047AB"
+                        data-custom-cta-text="Obtenir 100 Crédits maintenant"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center gap-4 text-[10px] text-slate-400 dark:text-slate-500 pt-1">
+                <span class="flex items-center gap-1"><i class="fa-solid fa-lock text-slate-400"></i> Paiement Sécurisé SSL</span>
+                <span class="flex items-center gap-1"><i class="fa-solid fa-bolt text-amber-500"></i> Activation Immédiate</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Onboarding / Inscription -->
+    <div id="onboardingModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-2xl relative">
+            <div class="text-center space-y-3">
+                <div class="w-14 h-14 bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-950 rounded-2xl mx-auto flex items-center justify-center text-2xl font-bold shadow-md">
+                    <i class="fa-solid fa-rocket text-slate-950"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">Bienvenue sur <span class="text-brand-blue dark:text-blue-400">MarketPulse AI</span></h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Créez des campagnes marketing virales et prospections par e-mail en 30 secondes.</p>
+                </div>
+            </div>
+
+            <!-- Badge de parrainage dynamique -->
+            <div id="referralBanner" class="hidden p-3 bg-amber-50 dark:bg-amber-950/60 rounded-2xl border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2 font-bold animate-pulse">
+                <i class="fa-solid fa-gift text-amber-500 text-base"></i>
+                <span>🎁 Vous êtes parrainé ! +5 crédits bonus offerts à l'inscription.</span>
+            </div>
+
+            <div class="space-y-2 bg-yellow-50/60 dark:bg-amber-950/30 p-3.5 rounded-2xl border border-yellow-200/60 dark:border-amber-900/40 text-xs">
+                <div class="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-medium">
+                    <i class="fa-solid fa-circle-check text-amber-500 text-sm"></i>
+                    <span><strong id="signupCreditsBadge">15 Crédits de génération</strong> offerts à l'inscription</span>
+                </div>
+                <div class="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-medium">
+                    <i class="fa-solid fa-circle-check text-amber-500 text-sm"></i>
+                    <span>Sauvegarde automatique de vos résultats dans le Cloud</span>
+                </div>
+            </div>
+
+            <form onsubmit="handleOnboardingSubmit(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Entrez votre e-mail pour commencer</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-envelope absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <input type="email" id="onboardingEmail" required placeholder="nom@exemple.com" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-blue transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                        <span>Code de parrainage</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Optionnel</span>
+                    </label>
+                    <div class="relative">
+                        <i class="fa-solid fa-ticket absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <input type="text" id="referralCodeInput" placeholder="Ex: REF123" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white uppercase font-mono">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-extrabold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98">
+                    <span>Activer mes crédits gratuits</span>
+                    <i class="fa-solid fa-arrow-right text-sm"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let credits = 15;
+        let isProUser = false;
+        let userEmail = localStorage.getItem('marketpulse_user_email') || '';
+        let lastGeneratedData = null;
+
+        let totalWords = parseInt(localStorage.getItem('marketpulse_total_words') || '0');
+        let totalCampaigns = parseInt(localStorage.getItem('marketpulse_total_campaigns') || '0');
+
+        // --- 🌐 Détection du lien de parrainage (?ref=CODE) ---
+        let detectedRefCode = "";
+
+        function checkReferralURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            detectedRefCode = urlParams.get('ref') || "";
+            
+            if (detectedRefCode) {
+                const refCodeInput = document.getElementById('referralCodeInput');
+                const refBanner = document.getElementById('referralBanner');
+                const badgeText = document.getElementById('signupCreditsBadge');
+                
+                if (refCodeInput) refCodeInput.value = detectedRefCode;
+                if (refBanner) refBanner.classList.remove('hidden');
+                if (badgeText) badgeText.textContent = "20 Crédits (15 + 5 Bonus Parrainage)";
+            }
+        }
+
+        // --- 🔒 Contrôle des fonctionnalités réservées PRO ---
+        function handleLanguageChange(selectEl) {
+            if (selectEl.value !== 'Français 🇫🇷' && !isProUser) {
+                showToast("🔒 Les langues internationales sont réservées au Plan PRO !", "error");
+                openChariowModal();
+                selectEl.value = 'Français 🇫🇷';
+            }
+        }
+
+        // --- 🌙 Gestion du Thème Clair / Sombre ---
+        function initTheme() {
+            const savedTheme = localStorage.getItem('marketpulse_theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon(false);
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('marketpulse_theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+            showToast(isDark ? '🌙 Mode Sombre activé' : '☀️ Mode Clair activé', 'info');
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('themeIcon');
+            if (!icon) return;
+            icon.className = isDark ? 'fa-solid fa-sun text-yellow-400' : 'fa-solid fa-moon text-slate-700';
+        }
+
+        // --- Analytics Modals & Functions ---
+        function openAnalyticsModal() {
+            document.getElementById('statWords').textContent = totalWords;
+            document.getElementById('statCampaigns').textContent = totalCampaigns;
+            document.getElementById('statHours').textContent = (totalCampaigns * 0.5).toFixed(1) + 'h';
+            document.getElementById('statCredits').textContent = credits;
+            document.getElementById('analyticsModal').classList.remove('hidden');
+        }
+
+        function closeAnalyticsModal() {
+            document.getElementById('analyticsModal').classList.add('hidden');
+        }
+
+        // --- Parrainage (Referral System) ---
+        function openReferralModal() {
+            const userRefCode = userEmail ? btoa(userEmail).substring(0, 8) : 'FREE15';
+            const refLink = `${window.location.origin}${window.location.pathname}?ref=${userRefCode}`;
+            document.getElementById('referralLinkInput').value = refLink;
+            document.getElementById('referralModal').classList.remove('hidden');
+        }
+
+        function closeReferralModal() {
+            document.getElementById('referralModal').classList.add('hidden');
+        }
+
+        function copyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error("Copy failed:", err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function copyReferralLink() {
+            const linkInput = document.getElementById('referralLinkInput');
+            copyTextToClipboard(linkInput.value);
+            showToast("🎁 Lien de parrainage copié !", "success");
+        }
+
+        function copySingleHook(text) {
+            copyTextToClipboard(text);
+            showToast("Accroche copiée !", "success");
+        }
+
+        // --- Onboarding & Auth ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            checkReferralURL();
+            if (!userEmail) {
+                openOnboardingModal();
+            } else {
+                updateUserUI(userEmail);
+            }
+        });
+
+        function openOnboardingModal() {
+            document.getElementById('onboardingModal').classList.remove('hidden');
+        }
+
+        function closeOnboardingModal() {
+            document.getElementById('onboardingModal').classList.add('hidden');
+        }
+
+        function handleOnboardingSubmit(e) {
+            e.preventDefault();
+            const emailInput = document.getElementById('onboardingEmail').value.trim();
+            const refCodeEntered = document.getElementById('referralCodeInput').value.trim();
+            if (!emailInput) return;
+
+            userEmail = emailInput;
+            localStorage.setItem('marketpulse_user_email', userEmail);
+            
+            if (refCodeEntered) {
+                credits = 20;
+                showToast(`🎁 Compte créé ! 20 crédits activés (+5 bonus parrainage)`, 'success');
+            } else {
+                credits = 15;
+                showToast(`Bienvenue ${userEmail} ! 15 crédits offerts.`, 'success');
+            }
+            document.getElementById('userCredits').textContent = credits;
+
+            updateUserUI(userEmail);
+            closeOnboardingModal();
+
+            if (window.GOOGLE_SHEETS_URL) {
+                fetch(window.GOOGLE_SHEETS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: new Date().toLocaleString('fr-FR'),
+                        email: userEmail,
+                        referralCode: refCodeEntered || 'Aucun',
+                        credits: credits,
+                        source: 'SaaS MarketPulse AI'
+                    })
+                }).then(() => {
+                    console.log('Google Sheets Sync Successful');
+                }).catch(err => console.log('Google Sheets Sync:', err));
+            }
+        }
+
+        function updateUserUI(email) {
+            const badge = document.getElementById('userProfileBadge');
+            const emailSpan = document.getElementById('displayUserEmail');
+            if (badge && emailSpan) {
+                emailSpan.textContent = email;
+                badge.classList.remove('hidden');
+            }
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('marketpulse_user_email');
+            userEmail = '';
+            document.getElementById('userProfileBadge').classList.add('hidden');
+            showToast("Vous avez été déconnecté.", "info");
+            openOnboardingModal();
+        }
+
+        // --- Chariow Modal ---
+        function openChariowModal() {
+            document.getElementById('chariowModal').classList.remove('hidden');
+        }
+        function closeChariowModal() {
+            document.getElementById('chariowModal').classList.add('hidden');
+        }
+
+        // --- Modèles de Niche (Presets) ---
+        const PRESETS = {
+            ecom: {
+                brand: "Afrishop Express",
+                target: "Acheteurs en ligne & E-commerçants",
+                tone: "Urgent & Persuasif",
+                offer: "Livraison gratuite en 24h sur tous vos articles de mode & tech préférés avec paiement Mobile Money à la livraison !"
+            },
+            coaching: {
+                brand: "Digital Skills Academy",
+                target: "Jeunes professionnels & Reconversion",
+                tone: "Inspirant & Captivant",
+                offer: "Formation intensive de 4 semaines pour maîtriser le Marketing Digital et décrocher vos premiers clients freelances."
+            },
+            immo: {
+                brand: "Koffi Immo Prestige",
+                target: "Investisseurs & Familles",
+                tone: "Professionnel & Premium",
+                offer: "Villas de standing sécurisées à vendre avec facilités de paiement échelonnées et titres fonciers garantis."
+            },
+            resto: {
+                brand: "Le Lagon Gourmand",
+                target: "Amateurs de bonne cuisine & Familles",
+                tone: "Décontracté & Amusant",
+                offer: "Menu spécial Grillades & Fruits de Mer ce week-end avec -20% sur présentation de cette annonce !"
+            },
+            b2b: {
+                brand: "DigiCraft Marketing Agency",
+                target: "PME, Startups & Entreprises locales",
+                tone: "Professionnel & Premium",
+                offer: "Accompagnement 360° pour automatiser votre prospection client et multiplier vos ventes par 3 en 90 jours."
+            }
+        };
+
+        function applyPreset(key) {
+            const data = PRESETS[key];
+            if (!data) return;
+            document.getElementById('brandName').value = data.brand;
+            document.getElementById('targetAudience').value = data.target;
+            document.getElementById('campaignTone').value = data.tone;
+            document.getElementById('offerDetails').value = data.offer;
+            showToast(`🎯 Modèle "${data.brand}" appliqué !`, 'info');
+        }
+
+        // --- Generation IA ---
+        async function generateCampaign(e) {
+            e.preventDefault();
+            if (credits <= 0) {
+                showToast("Vous n'avez plus de crédits disponibles. Rechargez via Chariow !", 'error');
+                openChariowModal();
+                return;
+            }
+
+            const brand = document.getElementById('brandName').value;
+            const target = document.getElementById('targetAudience').value;
+            const tone = document.getElementById('campaignTone').value;
+            const lang = document.getElementById('generationLanguage').value;
+            const offer = document.getElementById('offerDetails').value;
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Génération en ${lang}...`;
+
+            credits--;
+            document.getElementById('userCredits').textContent = credits;
+
+            try {
+                const promptText = `Agis comme un expert en marketing digital. Génère un kit de contenu dans la langue suivante : ${lang}.
+                Marque: "${brand}"
+                Cible: ${target}
+                Ton: ${tone}
+                Offre: ${offer}
+
+                Renvoie une réponse au format JSON strict avec la structure suivante :
+                {
+                    "hooks": ["Accroche virale 1", "Accroche virale 2", "Accroche virale 3"],
+                    "post": "Post complet pour les réseaux sociaux avec émojis et un CTA dirigé vers l'achat",
+                    "email": "Un e-mail de prospection (cold email) captivant avec objet et corps de texte"
+                }`;
+
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                const data = await response.json();
+                let generatedResult;
+                
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    generatedResult = JSON.parse(data.candidates[0].content.parts[0].text);
+                } else {
+                    generatedResult = {
+                        hooks: [
+                            `🚀 STOP ! Découvrez comment ${brand} révolutionne votre quotidien.`,
+                            `💡 Vous êtes ${target} ? Voici la solution que vous attendiez.`,
+                            `⚡ Atteignez vos objectifs 10x plus vite grâce à ${brand}.`
+                        ],
+                        post: `🔥 ALERTE NOUVEAUTÉ POUR LES ${target.toUpperCase()} !\n\nVous cherchez un moyen plus simple de réussir ? ${brand} est spécialement conçu pour vous.\n\n👉 Offre spéciale : ${offer}\n\nLien disponible maintenant en bio ! 🚀`,
+                        email: `Objet: Une opportunité exclusive pour les ${target}\n\nBonjour,\n\nNous savons à quel point votre temps est précieux. C'est pourquoi ${brand} a développé une solution sur mesure.\n\nEn savoir plus dès aujourd'hui !\n\nCordialement,`
+                    };
+                }
+
+                const generatedTextLength = (generatedResult.hooks.join(' ') + generatedResult.post + generatedResult.email).split(/\s+/).length;
+                totalWords += generatedTextLength;
+                totalCampaigns += 1;
+                localStorage.setItem('marketpulse_total_words', totalWords);
+                localStorage.setItem('marketpulse_total_campaigns', totalCampaigns);
+
+                lastGeneratedData = { brand, target, tone, lang, offer, ...generatedResult };
+                renderResults(brand, generatedResult, tone, lang);
+                showToast(`Campagne générée en ${lang} ! (-1 crédit)`, 'success');
+
+                if (window.saveToFirestore) {
+                    window.saveToFirestore({
+                        brand,
+                        target,
+                        tone,
+                        lang,
+                        hook: generatedResult.hooks[0],
+                        email: generatedResult.email
+                    });
+                }
+
+            } catch (err) {
+                console.error("Génération alternative:", err);
+                showToast("Génération effectuée en mode autonome.", 'info');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-base"></i> Générer la Campagne (1 crédit)`;
+            }
+        }
+
+        function renderResults(brand, data, tone, lang) {
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = `
+                <div id="exportableCampaignContent" class="space-y-4">
+                    <!-- Visual Mockup Réseaux Sociaux -->
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <i class="fa-brands fa-linkedin text-blue-600 dark:text-blue-400 text-sm"></i> Prévisualisation Mockup Réseau Social (${lang || 'FR'})
+                            </span>
+                            <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded">Aperçu Réaliste</span>
+                        </div>
+
+                        <div class="p-4 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-3 font-sans">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-blue to-amber-400 flex items-center justify-center text-white font-extrabold text-sm shadow-sm">
+                                        ${brand.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-extrabold text-slate-900 dark:text-white">${brand}</h4>
+                                        <p class="text-[10px] text-slate-400">Compte Officiel • À l'instant • 🌐</p>
+                                    </div>
+                                </div>
+                                <button class="text-brand-blue dark:text-blue-400 hover:text-blue-700 text-xs font-bold flex items-center gap-1">
+                                    <i class="fa-solid fa-plus text-[10px]"></i> Suivre
+                                </button>
+                            </div>
+
+                            <div class="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-normal">
+                                ${data.post}
+                            </div>
+
+                            <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
+                                <button class="hover:text-brand-blue flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                    <i class="fa-regular fa-thumbs-up text-amber-500"></i> J'aime (42)
+                                </button>
+                                <button class="hover:text-brand-blue flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                    <i class="fa-regular fa-comment"></i> Commenter (12)
+                                </button>
+                                <button class="hover:text-brand-blue flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                    <i class="fa-solid fa-share"></i> Partager
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hooks Card -->
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
+                        <span class="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt text-amber-500"></i> 3 Accroches Virales (Hooks)
+                        </span>
+                        <ul class="space-y-2 text-xs text-slate-800 dark:text-slate-200">
+                            ${data.hooks.map(h => `<li class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 font-medium flex items-center justify-between group">
+                                <span>${h}</span>
+                                <button onclick="copySingleHook('${h.replace(/'/g, "\\'")}');" class="text-slate-400 hover:text-brand-blue text-xs p-1">
+                                    <i class="fa-solid fa-copy"></i>
+                                </button>
+                            </li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <!-- Email Card -->
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
+                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-envelope text-brand-blue dark:text-blue-400"></i> E-mail de Prospection (Cold Email)
+                        </span>
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed">
+                            ${data.email}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Fonctions d'Exportation TXT & PDF ---
+        function exportToTXT() {
+            if (!lastGeneratedData) {
+                showToast("Aucune campagne générée à exporter.", "error");
+                return;
+            }
+
+            const txtContent = `================================================
+MARKETPULSE AI - RAPPORT DE CAMPAGNE
+================================================
+Marque : ${lastGeneratedData.brand}
+Cible  : ${lastGeneratedData.target}
+Ton    : ${lastGeneratedData.tone}
+Langue : ${lastGeneratedData.lang}
+Date   : ${new Date().toLocaleString('fr-FR')}
+================================================
+
+--- 1. ACCROCHES VIRALES (HOOKS) ---
+${lastGeneratedData.hooks.map((h, i) => `[Accroche ${i+1}] ${h}`).join('\n')}
+
+--- 2. POST POUR RÉSEAUX SOCIAUX ---
+${lastGeneratedData.post}
+
+--- 3. E-MAIL DE PROSPECTION ---
+${lastGeneratedData.email}
+
+================================================
+Généré automatiquement par MarketPulse AI
+================================================`;
+
+            const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `campagne_${lastGeneratedData.brand.toLowerCase().replace(/\s+/g, '_')}.txt`;
+            link.click();
+            showToast("📄 Fichier TXT téléchargé !", "success");
+        }
+
+        function exportToPDF() {
+            if (!isProUser) {
+                showToast("🔒 L'export PDF est réservé aux membres PRO !", "error");
+                openChariowModal();
+                return;
+            }
+
+            const element = document.getElementById('exportableCampaignContent');
+            if (!element || !lastGeneratedData) {
+                showToast("Aucune campagne générée à exporter.", "error");
+                return;
+            }
+
+            const opt = {
+                margin:       10,
+                filename:     `campagne_${lastGeneratedData.brand.toLowerCase().replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            showToast("⏳ Génération du PDF en cours...", "info");
+            html2pdf().set(opt).from(element).save().then(() => {
+                showToast("📄 Fichier PDF téléchargé !", "success");
+            }).catch(err => {
+                console.error("PDF Export Error:", err);
+                showToast("Erreur lors de la création du PDF.", "error");
+            });
+        }
+
+        function copyGeneratedContent() {
+            if (!lastGeneratedData) {
+                showToast("Aucune campagne à copier.", "error");
+                return;
+            }
+            const fullText = `=== ACCROCHES ===\n${lastGeneratedData.hooks.join('\n')}\n\n=== POST RÉSEAUX SOCIAUX ===\n${lastGeneratedData.post}\n\n=== COLD EMAIL ===\n${lastGeneratedData.email}`;
+            copyTextToClipboard(fullText);
+            showToast("Toute la campagne a été copiée !", "success");
+        }
+
+        // --- Toast System ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-xl text-xs font-bold text-white shadow-xl flex items-center gap-2 pointer-events-auto transition-all transform translate-y-2 opacity-0 animate-in fade-in slide-in-from-bottom duration-200 ${
+                type === 'success' ? 'bg-emerald-600' :
+                type === 'error' ? 'bg-rose-600' : 'bg-slate-900 dark:bg-slate-800'
+            }`;
+            
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info'} text-sm"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
