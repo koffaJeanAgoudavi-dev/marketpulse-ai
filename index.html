@@ -96,6 +96,7 @@
 
         let app, db, auth, currentUser = null;
         let unsubscribeHistory = null;
+        window.currentHistoryList = [];
 
         function getSafeUserKey(email) {
             if (!email) return currentUser ? currentUser.uid : 'guest';
@@ -206,21 +207,56 @@
         function renderCloudHistory(historyData) {
             const listEl = document.getElementById('cloudHistoryList');
             if (!listEl) return;
+            window.currentHistoryList = historyData || [];
+
             if (!historyData || historyData.length === 0) {
                 listEl.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 italic text-center py-4">Aucun projet sauvegardé pour ce compte.</p>`;
                 return;
             }
 
-            listEl.innerHTML = historyData.map(item => `
-                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex flex-col gap-1.5 shadow-sm">
+            listEl.innerHTML = historyData.map((item, idx) => `
+                <div onclick="restoreHistoryItem(${idx})" class="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-yellow-50/80 dark:hover:bg-slate-700/80 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex flex-col gap-1.5 shadow-sm cursor-pointer transition-all hover:border-amber-400 group">
                     <div class="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
-                        <span class="text-brand-blue dark:text-blue-400 flex items-center gap-1"><i class="fa-solid fa-bolt text-amber-500"></i>${item.brand || 'Campagne'}</span>
+                        <span class="text-brand-blue dark:text-blue-400 flex items-center gap-1 group-hover:text-amber-600 font-extrabold"><i class="fa-solid fa-bolt text-amber-500"></i>${item.brand || 'Campagne'}</span>
                         <span class="text-[10px] bg-yellow-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded font-bold">${item.tone || 'Pro'}</span>
                     </div>
-                    <p class="text-slate-600 dark:text-slate-400 line-clamp-2">${item.hook || item.email || ''}</p>
+                    <p class="text-slate-600 dark:text-slate-400 line-clamp-2">${item.hook || (item.hooks ? item.hooks[0] : '') || item.email || ''}</p>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                        <span>${item.lang || 'Français 🇫🇷'}</span>
+                        <span class="text-brand-blue dark:text-blue-400 font-extrabold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">Recharger <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
                 </div>
             `).join('');
         }
+
+        window.restoreHistoryItem = function(index) {
+            const item = window.currentHistoryList[index];
+            if (!item) return;
+
+            if (item.brand) document.getElementById('brandName').value = item.brand;
+            if (item.target) document.getElementById('targetAudience').value = item.target;
+            if (item.tone) document.getElementById('campaignTone').value = item.tone;
+            if (item.lang) document.getElementById('generationLanguage').value = item.lang;
+            if (item.offer) document.getElementById('offerDetails').value = item.offer;
+
+            const generatedData = {
+                hooks: item.hooks || [item.hook || `Découvrez ${item.brand}`],
+                post: item.post || `🔥 Offre spéciale ${item.brand} :\n\n${item.offer || ''}`,
+                email: item.email || `Bonjour,\n\nEn savoir plus sur ${item.brand}.\n\nCordialement,`
+            };
+
+            window.lastGeneratedData = {
+                brand: item.brand,
+                target: item.target,
+                tone: item.tone,
+                lang: item.lang,
+                offer: item.offer || '',
+                ...generatedData
+            };
+
+            window.renderResults(item.brand, generatedData, item.tone, item.lang);
+            showToast(`📂 Projet "${item.brand}" réouvert !`, 'success');
+        };
     </script>
 
     <!-- Toast Notification Container -->
@@ -228,6 +264,7 @@
 
     <!-- Accentuation Jaune Soleil -->
     <div class="h-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-brand-blue w-full"></div>
+    
     <header class="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
@@ -375,9 +412,9 @@
             <div class="light-card p-5 rounded-2xl shadow-sm">
                 <h3 class="font-bold text-sm text-slate-900 dark:text-white mb-3 flex items-center justify-between">
                     <span class="flex items-center gap-2"><i class="fa-solid fa-cloud text-brand-blue dark:text-blue-400"></i>Historique Cloud</span>
-                    <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-brand-blue dark:text-blue-300 font-bold px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800">Firestore Realtime</span>
+                    <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-brand-blue dark:text-blue-300 font-bold px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800">Cliquable</span>
                 </h3>
-                <div id="cloudHistoryList" class="space-y-2 max-h-48 overflow-y-auto">
+                <div id="cloudHistoryList" class="space-y-2 max-h-56 overflow-y-auto pr-1">
                     <!-- Dynamic Cloud Items -->
                 </div>
             </div>
@@ -756,6 +793,28 @@
             }
         }
 
+        // --- 🖼️ Téléchargement d'Image ---
+        async function downloadImage(url, filename) {
+            try {
+                showToast("⏳ Préparation du téléchargement de l'image...", "info");
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename || 'visuel_publicitaire.jpg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+                showToast("🖼️ Image téléchargée avec succès !", "success");
+            } catch(err) {
+                console.log("Image fetch fallback:", err);
+                window.open(url, '_blank');
+                showToast("🖼️ Visuel ouvert dans un nouvel onglet.", "info");
+            }
+        }
+
         function getCampaignImageUrl(brand, offer) {
             const text = (brand + ' ' + offer).toLowerCase();
             if (text.includes('resto') || text.includes('gourmand') || text.includes('cuisine') || text.includes('plat') || text.includes('grill')) {
@@ -980,7 +1039,7 @@
                 localStorage.setItem('marketpulse_total_campaigns', totalCampaigns);
 
                 lastGeneratedData = { brand, target, tone, lang, offer, ...generatedResult };
-                renderResults(brand, generatedResult, tone, lang);
+                window.renderResults(brand, generatedResult, tone, lang);
                 showToast(`Campagne générée en ${lang} ! (-1 crédit)`, 'success');
 
                 if (window.saveToFirestore) {
@@ -989,7 +1048,10 @@
                         target,
                         tone,
                         lang,
+                        offer,
                         hook: generatedResult.hooks[0],
+                        hooks: generatedResult.hooks,
+                        post: generatedResult.post,
                         email: generatedResult.email
                     });
                 }
@@ -1003,7 +1065,7 @@
             }
         }
 
-        function renderResults(brand, data, tone, lang) {
+        window.renderResults = function(brand, data, tone, lang) {
             const container = document.getElementById('resultsContainer');
             const imageUrl = getCampaignImageUrl(brand, lastGeneratedData ? lastGeneratedData.offer : '');
             
@@ -1043,9 +1105,12 @@
                                 ${data.post}
                             </div>
 
-                            <!-- Image Visuelle Générée Publicitaire -->
-                            <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm my-2">
+                            <!-- Image Visuelle Générée Publicitaire avec Bouton Télécharger -->
+                            <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm my-2 relative group">
                                 <img src="${imageUrl}" alt="Visuel Publicitaire ${brand}" class="w-full h-48 sm:h-56 object-cover hover:scale-105 transition-all duration-300">
+                                <button onclick="downloadImage('${imageUrl}', 'visuel_${brand.toLowerCase().replace(/\s+/g, '_')}.jpg')" class="absolute top-3 right-3 bg-slate-900/85 hover:bg-slate-900 text-white text-xs px-3 py-1.5 rounded-xl font-bold backdrop-blur-md shadow-lg transition-all flex items-center gap-1.5">
+                                    <i class="fa-solid fa-download text-amber-400"></i> Télécharger l'image
+                                </button>
                             </div>
 
                             <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
@@ -1093,7 +1158,7 @@
                     </div>
                 </div>
             `;
-        }
+        };
 
         // --- Fonctions d'Exportation TXT & PDF ---
         function exportToTXT() {
