@@ -1,0 +1,211 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: is authenticated and is owner
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches('.*@.*\\..*');
+    }
+
+    // Deny by default - no catch-all allow
+
+    // ==================== USERS ====================
+    match /users/{uid} {
+      // Read: only owner
+      allow read: if isOwner(uid);
+
+      // Create: only owner, with strict validation Phase 3B
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.email.lower() == request.auth.token.email.lower()
+        // Credits: max 100 lors migration legacy, min 0
+        && request.resource.data.credits is number
+        && request.resource.data.credits >= 0
+        && request.resource.data.credits <= 100
+        // Plan: only free in Phase 3B, no pro from client
+        && request.resource.data.plan == 'free'
+        && request.resource.data.isPro is bool
+        // Si isPro true, doit être legacy source uniquement
+        && (request.resource.data.isPro == false || 
+            (request.resource.data.isPro == true && request.resource.data.proSource == 'legacy'))
+        // proSource allowed values
+        && request.resource.data.proSource in ['free', 'legacy', null, '']
+        // referralCode: string 4-20 chars
+        && request.resource.data.referralCode is string
+        && request.resource.data.referralCode.size() >= 4
+        && request.resource.data.referralCode.size() <= 20
+        // referredBy: optional, must not be self
+        && (!('referredBy' in request.resource.data) || 
+            request.resource.data.referredBy == null || 
+            (request.resource.data.referredBy is string && request.resource.data.referredBy != uid))
+        // stats: must have totalCampaigns and totalWords numbers
+        && request.resource.data.stats is map
+        && request.resource.data.stats.totalCampaigns is number
+        && request.resource.data.stats.totalWords is number
+        // createdAt must be serverTimestamp (approx check)
+        && request.resource.data.createdAt is timestamp
+        // migratedFromLocal bool
+        && request.resource.data.migratedFromLocal is bool
+        // schemaVersion number
+        && request.resource.data.schemaVersion is number
+        // Prevent setting sensitive future fields from client
+        && (!('proActivatedAt' in request.resource.data) || request.resource.data.proActivatedAt == null || request.resource.data.proActivatedAt is timestamp)
+        && (!('proExpiresAt' in request.resource.data) || request.resource.data.proExpiresAt == null || request.resource.data.proExpiresAt is timestamp);
+
+      // Update: only owner and NO sensitive fields changed (deny-by-default strict)
+      allow update: if isOwner(uid)
+        // Sensitive fields must NOT change
+        && request.resource.data.credits == resource.data.credits
+        && request.resource.data.plan == resource.data.plan
+        && request.resource.data.isPro == resource.data.isPro
+        && request.resource.data.proActivatedAt == resource.data.proActivatedAt
+        && request.resource.data.proExpiresAt == resource.data.proExpiresAt
+        && request.resource.data.proSource == resource.data.proSource
+        && request.resource.data.referralCode == resource.data.referralCode
+        && request.resource.data.referredBy == resource.data.referredBy
+        && request.resource.data.stats == resource.data.stats
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.schemaVersion == resource.data.schemaVersion
+        && request.resource.data.migratedFromLocal == resource.data.migratedFromLocal
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        // Only allow changing safe fields: displayName, theme, lastLoginAt, legacyEmails
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['displayName', 'theme', 'lastLoginAt', 'legacyEmails', 'updatedAt']);
+
+      // Delete: only owner (for RGPD, via backend ideally, but allow owner for Phase 3B)
+      allow delete: if isOwner(uid);
+    }
+
+    // ==================== CAMPAIGNS ====================
+    match /users/{uid}/campaigns/{campaignId} {
+      allow read: if isOwner(uid);
+      
+      allow create: if isOwner(uid)
+        && request.resource.data.userId == uid
+        && request.resource.data.id == campaignId
+        && request.resource.data.brand is string
+        && request.resource.data.brand.size() > 0
+        && request.resource.data.target is string
+        && request.resource.data.tone is string
+        && request.resource.data.lang is string
+        && request.resource.data.offer is string
+        && request.resource.data.hooks is list
+        && request.resource.data.hooks.size() == 3
+        && request.resource.data.post is string
+        && request.resource.data.email is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.wordCount is number
+        // Phase 4B.2-FIX: client peut créer uniquement template/legacy, PAS gemini (backend Admin only)
+        && request.resource.data.source in ['template', 'legacy']
+        && request.resource.data.schemaVersion is number
+        // Optional fields
+        && (!('imageUrl' in request.resource.data) || request.resource.data.imageUrl is string || request.resource.data.imageUrl == null)
+        && (!('preset' in request.resource.data) || request.resource.data.preset is string || request.resource.data.preset == null)
+        && (!('creditsUsed' in request.resource.data) || request.resource.data.creditsUsed is number);
+
+      // Update: allow only if owner and sensitive fields unchanged (userId, createdAt, id)
+      allow update: if isOwner(uid)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.userId == uid;
+
+      allow delete: if isOwner(uid);
+    }
+
+    // ==================== CREDIT TRANSACTIONS (backend only) ====================
+    match /users/{uid}/creditTransactions/{txId} {
+      // Read: only owner
+      allow read: if isOwner(uid);
+      // Create/Update/Delete: deny for client, only backend via service account
+      allow create, update, delete: if false;
+    }
+
+    // Also support legacy naming credit_transactions (underscore) for backward compat during migration
+    match /users/{uid}/credit_transactions/{txId} {
+      allow read: if isOwner(uid);
+      allow create, update, delete: if false;
+    }
+
+    // ==================== REFERRAL CODES (global) ====================
+    match /referralCodes/{code} {
+      // Read: authenticated users can read to validate referral
+      allow read: if request.auth != null;
+      
+      // Create: only owner can create his own code, code == doc ID
+      allow create: if request.auth != null
+        && request.resource.data.code == code
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid is string
+        && request.resource.data.code is string
+        && request.resource.data.code.size() >= 4
+        && request.resource.data.code.size() <= 20
+        && request.resource.data.isActive is bool
+        && request.resource.data.usesCount is number
+        && request.resource.data.usesCount == 0
+        && request.resource.data.createdAt is timestamp;
+
+      // Update: deny changing usesCount, ownerUid, code from client (backend only)
+      // Allow only isActive toggle by owner
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.ownerUid
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.usesCount == resource.data.usesCount
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isActive', 'updatedAt']);
+
+      allow delete: if false; // Backend only
+    }
+
+    // Legacy naming referral_codes
+    match /referral_codes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.code == code
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.usesCount == 0
+        && request.resource.data.createdAt is timestamp;
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.ownerUid
+        && request.resource.data.usesCount == resource.data.usesCount
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if false;
+    }
+
+    // ==================== REFERRALS (referredUid -> referrer) ====================
+    match /referrals/{referredUid} {
+      // Read: referred user or referrer can read
+      allow read: if request.auth != null
+        && (request.auth.uid == referredUid || request.auth.uid == resource.data.referrerUid);
+
+      // Create: referred user creates his own referral record, cannot be self-referral
+      allow create: if request.auth != null
+        && request.auth.uid == referredUid
+        && request.resource.data.referredUid == referredUid
+        && request.resource.data.referrerUid is string
+        && request.resource.data.referrerUid != referredUid
+        && request.resource.data.code is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.status in ['pending', 'validated']
+        // No reward fields from client
+        && !('rewardAmount' in request.resource.data)
+        && !('bonusGranted' in request.resource.data);
+
+      // Update/Delete: backend only (to grant rewards)
+      allow update, delete: if false;
+    }
+
+    // ==================== DENY ALL OTHER COLLECTIONS ====================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

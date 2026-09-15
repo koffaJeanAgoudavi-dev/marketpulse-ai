@@ -1,0 +1,27 @@
+{
+  "name": "marketpulse-ai-functions",
+  "description": "MarketPulse AI Cloud Functions - Phase 4B.2 génération sécurisée Gemini",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.0.1",
+    "@google/generative-ai": "^0.21.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-google": "^0.14.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions,firestore,auth",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "test": "node --check index.js && echo 'Syntax OK'"
+  },
+  "private": true
+}

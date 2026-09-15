@@ -1,0 +1,41 @@
+/* MarketPulse AI - Styles principaux
+   Phase 1A: Extraction du style inline, préparation Tailwind compilé futur
+   Pour l'instant Tailwind CDN reste utilisé pour stabilité visuelle
+*/
+
+body { 
+  font-family: 'Plus Jakarta Sans', sans-serif; 
+}
+
+/* Scrollbar personnalisée pour historique */
+#historyList::-webkit-scrollbar {
+  width: 4px;
+}
+#historyList::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.dark #historyList::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+/* Animations toast */
+@keyframes slideIn {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Préparation future: classes utilitaires custom si besoin */
+.pro-badge {
+  background: #fbbf24;
+  color: #0f172a;
+}
+
+/* Focus visible pour accessibilité (amélioration progressive) */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}

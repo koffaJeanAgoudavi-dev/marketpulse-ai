@@ -1,0 +1,9 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Deny all for Phase 3B - Storage will be used Phase 5 for images
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

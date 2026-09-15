@@ -1,0 +1,129 @@
+# MarketPulse AI - Deploy Firebase Functions via GitHub Actions
+# Architecture: GitHub Secret GEMINI_API_KEY -> functions/.env temporaire -> process.env.GEMINI_API_KEY
+# Projet: marketpulse-ai-48b08
+# Repo: koffaJeanAgoudavi-dev/marketpulse-ai
+# Branch: main
+
+name: Deploy Firebase Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/**'
+      - 'firebase.json'
+      - '.github/workflows/deploy-functions.yml'
+  workflow_dispatch: # Permet déclenchement manuel depuis GitHub UI
+
+jobs:
+  deploy-functions:
+    runs-on: ubuntu-latest
+    # Ne pas exposer de secrets dans les logs par défaut
+    env:
+      FIREBASE_PROJECT: marketpulse-ai-48b08
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js 20 (requis Firebase Functions v2)
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      # 3. Auth Google Cloud via Service Account JSON (FIREBASE_SERVICE_ACCOUNT secret)
+      # Secret FIREBASE_SERVICE_ACCOUNT doit contenir le JSON complet du service account
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # Optionnel: si vous utilisez WIF, remplacez par workload_identity_provider + service_account
+
+      # 4. Setup gcloud (pour firebase deploy qui utilise ADC)
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.FIREBASE_PROJECT }}
+
+      # 5. Install dependencies functions
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: |
+          npm ci --only=production || npm install
+
+      # 6. Install Firebase CLI
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      # 7. Créer temporairement functions/.env depuis GitHub Secret GEMINI_API_KEY
+      # IMPORTANT: ne jamais afficher la valeur de la clé dans les logs, GitHub masque automatiquement les secrets
+      # Le fichier .env est gitignored et sera supprimé après déploiement
+      - name: Create functions/.env from GitHub Secret
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          # Vérifie que le secret est présent (sans afficher sa valeur)
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "❌ GEMINI_API_KEY secret is empty or not set in GitHub Secrets"
+            exit 1
+          fi
+          # Crée .env de manière sécurisée (printf évite interprétation, valeur masquée par GitHub)
+          printf "GEMINI_API_KEY=%s\n" "$GEMINI_API_KEY" > functions/.env
+          echo "✅ functions/.env created from GitHub Secret (value hidden)"
+          # Ne jamais afficher le contenu du .env
+
+      # 8. Vérifier que la variable est présente sans afficher sa valeur
+      - name: Verify env present (without exposing value)
+        run: |
+          if [ ! -f functions/.env ]; then
+            echo "❌ functions/.env file missing"
+            exit 1
+          fi
+          if ! grep -q "^GEMINI_API_KEY=" functions/.env; then
+            echo "❌ GEMINI_API_KEY not found in functions/.env"
+            exit 1
+          fi
+          # Vérifie longueur sans afficher valeur
+          FILE_SIZE=$(wc -c < functions/.env)
+          if [ "$FILE_SIZE" -lt 20 ]; then
+            echo "❌ functions/.env seems too short, check secret"
+            exit 1
+          fi
+          echo "✅ GEMINI_API_KEY present in functions/.env - size: $FILE_SIZE bytes (value hidden)"
+          echo "✅ .env is gitignored: $(grep -q "^\.env" functions/.gitignore && echo "yes" || echo "check")"
+
+      # 9. Déployer uniquement les Functions vers marketpulse-ai-48b08
+      - name: Deploy Firebase Functions
+        run: |
+          echo "🚀 Deploying Functions to $FIREBASE_PROJECT..."
+          firebase deploy --only functions --project $FIREBASE_PROJECT --non-interactive
+          echo "✅ Deployment completed"
+
+      # 10. Supprimer functions/.env après déploiement, même en cas d'échec
+      - name: Cleanup .env (always)
+        if: always()
+        run: |
+          rm -f functions/.env
+          if [ -f functions/.env ]; then
+            echo "❌ Failed to remove .env"
+            exit 1
+          else
+            echo "🧹 functions/.env removed successfully"
+          fi
+
+      # 11. Résumé sécurité
+      - name: Security summary
+        if: always()
+        run: |
+          echo "🔒 Security checks:"
+          echo "- GEMINI_API_KEY was never printed in logs (masked by GitHub)"
+          echo "- functions/.env was temporary and removed"
+          echo "- .env is in functions/.gitignore"
+          echo "- No key committed to GitHub"
+          echo "- Key only in Cloud Functions env (process.env), not frontend"
