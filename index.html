@@ -25,8 +25,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- html2pdf.js pour export PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- Styles applicatifs -->
-    <link rel="stylesheet" href="src/styles/main.css">
+    
+    <!-- Chariow Widget Integration Scripts -->
+    <script src="https://js.chariowcdn.com/v1/widget.min.js" async></script>
+    <link rel="stylesheet" href="https://js.chariowcdn.com/v1/widget.min.css">
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-200">
 
@@ -48,19 +54,19 @@
 
             <div class="flex items-center gap-2 sm:gap-3">
                 <!-- Analytics Button -->
-                <button id="analyticsBtn" class="text-xs font-semibold px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center gap-1.5">
+                <button onclick="openAnalyticsModal()" class="text-xs font-semibold px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie text-blue-500"></i>
                     <span class="hidden md:inline">Analytics</span>
                 </button>
 
                 <!-- Referral Button -->
-                <button id="referralBtn" class="text-xs font-bold px-3 py-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-xl transition-all flex items-center gap-1.5">
+                <button onclick="openReferralModal()" class="text-xs font-bold px-3 py-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-xl transition-all flex items-center gap-1.5">
                     <i class="fa-solid fa-gift"></i>
                     <span>+5 Crédits</span>
                 </button>
 
                 <!-- Theme Switcher -->
-                <button id="themeToggleBtn" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-700 dark:text-slate-200" title="Changer le thème">
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-700 dark:text-slate-200" title="Changer le thème">
                     <i id="themeIcon" class="fa-solid fa-moon"></i>
                 </button>
 
@@ -68,7 +74,7 @@
                 <div id="userProfileBadge" class="hidden items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700">
                     <i class="fa-solid fa-user text-blue-500"></i>
                     <span id="displayUserEmail" class="max-w-[120px] truncate"></span>
-                    <button id="logoutBtn" class="text-slate-400 hover:text-rose-500 ml-1" title="Déconnexion">
+                    <button onclick="logoutUser()" class="text-slate-400 hover:text-rose-500 ml-1" title="Déconnexion">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     </button>
                 </div>
@@ -80,7 +86,7 @@
                 </div>
 
                 <!-- Recharge / PRO Button -->
-                <button id="rechargeBtn" class="text-xs font-bold px-3.5 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                <button onclick="openChariowModal()" class="text-xs font-bold px-3.5 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 rounded-xl shadow-md transition-all flex items-center gap-1.5">
                     <i class="fa-solid fa-bolt"></i>
                     <span class="hidden sm:inline">Recharger / Passer PRO</span>
                 </button>
@@ -108,26 +114,26 @@
                         ⚡ Modèles Pré-remplis (Presets)
                     </label>
                     <div class="flex flex-wrap gap-1.5">
-                        <button type="button" data-preset="ecom" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                        <button onclick="applyPreset('ecom')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
                             🛒 E-Commerce
                         </button>
-                        <button type="button" data-preset="coaching" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                        <button onclick="applyPreset('coaching')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
                             🎓 Formation
                         </button>
-                        <button type="button" data-preset="immo" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                        <button onclick="applyPreset('immo')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
                             🏠 Immobilier
                         </button>
-                        <button type="button" data-preset="resto" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                        <button onclick="applyPreset('resto')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
                             🍽️ Restauration
                         </button>
-                        <button type="button" data-preset="b2b" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
+                        <button onclick="applyPreset('b2b')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
                             💼 B2B / Agence
                         </button>
                     </div>
                 </div>
 
                 <!-- Input Form -->
-                <form id="campaignForm" class="space-y-3.5">
+                <form onsubmit="generateCampaign(event)" class="space-y-3.5">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nom de votre Marque / Produit</label>
                         <input type="text" id="brandName" required placeholder="Ex: Afrishop Express" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
@@ -154,7 +160,7 @@
                                 <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Langue</label>
                                 <span class="text-[9px] bg-amber-400 text-slate-900 font-black px-1.5 py-0.2 rounded">PRO</span>
                             </div>
-                            <select id="generationLanguage" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            <select id="generationLanguage" onchange="handleLanguageChange(this)" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                                 <option value="Français 🇫🇷">Français 🇫🇷</option>
                                 <option value="English 🇬🇧">English 🇬🇧 🔒</option>
                                 <option value="Español 🇪🇸">Español 🇪🇸 🔒</option>
@@ -196,13 +202,13 @@
                     <i class="fa-solid fa-square-poll-vertical text-blue-500"></i> Résultat de la Campagne
                 </h3>
                 <div class="flex items-center gap-2">
-                    <button id="exportTxtBtn" class="text-xs px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
+                    <button onclick="exportToTXT()" class="text-xs px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
                         <i class="fa-solid fa-file-lines text-emerald-500"></i> TXT
                     </button>
-                    <button id="exportPdfBtn" class="text-xs px-2.5 py-1.5 bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/30 rounded-lg text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1 transition-all">
+                    <button onclick="exportToPDF()" class="text-xs px-2.5 py-1.5 bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/30 rounded-lg text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1 transition-all">
                         <i class="fa-solid fa-lock text-amber-500 text-[10px]"></i> PDF PRO
                     </button>
-                    <button id="copyAllBtn" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm">
+                    <button onclick="copyGeneratedContent()" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm">
                         <i class="fa-solid fa-copy"></i> Copier
                     </button>
                 </div>
@@ -233,7 +239,7 @@
                     <i class="fa-solid fa-rocket text-xl"></i>
                 </div>
                 <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Bienvenue sur MarketPulse AI</h3>
-                <p id="onboardingSubtitle" class="text-xs text-slate-500 dark:text-slate-400">Créez votre compte pour activer vos crédits gratuits.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Entrez votre adresse e-mail pour activer vos crédits gratuits.</p>
             </div>
 
             <!-- Referral Banner (Hidden by default) -->
@@ -242,75 +248,55 @@
                 <span>🎁 Code de parrainage activé ! Vous recevez 5 crédits bonus.</span>
             </div>
 
-            <!-- Erreur d'authentification (masquée par défaut) -->
-            <div id="authErrorBox" class="hidden p-3 bg-rose-50 dark:bg-rose-900/30 border border-rose-400/30 rounded-xl text-xs text-rose-700 dark:text-rose-400 font-bold flex items-center gap-2">
-                <i class="fa-solid fa-triangle-exclamation text-base"></i>
-                <span id="authErrorText"></span>
-            </div>
-
-            <form id="onboardingForm" class="space-y-3">
+            <form onsubmit="handleOnboardingSubmit(event)" class="space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Votre Adresse E-mail</label>
-                    <input type="email" id="onboardingEmail" required placeholder="nom@exemple.com" autocomplete="email" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <input type="email" id="onboardingEmail" required placeholder="nom@exemple.com" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Mot de passe</label>
-                    <input type="password" id="onboardingPassword" required minlength="6" placeholder="6 caractères minimum" autocomplete="new-password" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                </div>
-                <div id="confirmPasswordField">
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Confirmez le mot de passe</label>
-                    <input type="password" id="onboardingPasswordConfirm" placeholder="Retapez votre mot de passe" autocomplete="new-password" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                </div>
-                <div id="referralField">
                     <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Code de parrainage (Optionnel)</label>
                     <input type="text" id="referralCodeInput" placeholder="Ex: FREE15" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                 </div>
 
-                <div id="signupOfferBox" class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs flex items-center justify-between text-slate-600 dark:text-slate-400 font-bold">
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs flex items-center justify-between text-slate-600 dark:text-slate-400 font-bold">
                     <span>Offre d'activation :</span>
                     <span id="signupCreditsBadge" class="text-blue-600 dark:text-blue-400">15 Crédits Offerts</span>
                 </div>
 
-                <button type="submit" id="onboardingSubmitBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all">
-                    Créer mon compte
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all">
+                    Démarrer l'expérience
                 </button>
-
-                <p class="text-center text-xs text-slate-500 dark:text-slate-400">
-                    <span id="authModeSwitchLabel">Vous avez déjà un compte ?</span>
-                    <button type="button" id="authModeSwitchBtn" class="text-blue-600 dark:text-blue-400 font-bold hover:underline ml-1">Se connecter</button>
-                </p>
             </form>
-
-            <!-- Panneau de vérification d'email (masqué par défaut) -->
-            <div id="verificationPanel" class="hidden space-y-3">
-                <div class="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-400/30 rounded-xl text-xs text-blue-700 dark:text-blue-300 font-bold flex items-start gap-2">
-                    <i class="fa-solid fa-envelope-circle-check text-base mt-0.5"></i>
-                    <span>Un e-mail de vérification a été envoyé à <span id="verifyEmailAddress" class="underline"></span>. Cliquez sur le lien reçu, puis revenez ici.</span>
-                </div>
-                <button type="button" id="checkVerificationBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all">
-                    ✅ J'ai vérifié mon e-mail
-                </button>
-                <button type="button" id="resendVerificationBtn" class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 transition-all">
-                    📩 Renvoyer l'e-mail de vérification
-                </button>
-                <button type="button" id="switchAccountBtn" class="w-full py-2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-semibold transition-all">
-                    Utiliser un autre compte
-                </button>
-            </div>
         </div>
     </div>
 
-    <!-- Chariow / Pro Modal -->
+    <!-- Chariow / Pro Modal with Embedded Chariow Snap Widget -->
     <div id="chariowModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
-            <button data-close-modal="chariowModal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
+            <button onclick="closeChariowModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
                 <i class="fa-solid fa-xmark"></i>
             </button>
             
             <div class="text-center space-y-2">
                 <span class="text-[10px] bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">Passer à la vitesse supérieure</span>
                 <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Rechargez vos Crédits & Passez PRO</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Paiement instantané via Chariow (Mobile Money & Carte)</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Paiement instantané via Chariow (Mobile Money & Carte Bancaire)</p>
+            </div>
+
+            <!-- Embedded Official Chariow Widget -->
+            <div class="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 text-center">
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300">📱 Guichet Chariow Snap</span>
+                <div id="chariow-widget" 
+                    data-product-id="prd_7xzzwu92"
+                    data-store-domain="digicraft.mychariow.shop"
+                    data-style="tap"
+                    data-border-style="rounded"
+                    data-cta-width="xs"
+                    data-cta-animation="pulse_glow"
+                    data-locale="en"
+                    data-primary-color="#0047AB"
+                    data-background-color="#0047AB"
+                    data-custom-cta-text="Obtenir maintenant"></div>
             </div>
 
             <div class="grid grid-cols-2 gap-3 pt-2">
@@ -321,7 +307,7 @@
                         <p class="text-[11px] text-slate-500">50 Crédits de Génération</p>
                         <div class="text-lg font-black text-blue-600 dark:text-blue-400 my-2">4 900 FCFA</div>
                     </div>
-                    <button id="buyPack50Btn" data-amount="50" class="w-full py-2 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white font-bold text-xs rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-1.5">
+                    <button onclick="buyCreditPack(50)" class="w-full py-2 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white font-bold text-xs rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-coins text-amber-400"></i> Acheter 50 Crédits
                     </button>
                 </div>
@@ -334,7 +320,7 @@
                         <p class="text-[11px] text-slate-500">Génération Illimitée + PDF + Multilingue</p>
                         <div class="text-lg font-black text-amber-500 my-2">9 900 FCFA <span class="text-[10px] text-slate-400 font-normal">/mois</span></div>
                     </div>
-                    <button id="activateProBtn" class="w-full py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5">
+                    <button onclick="activateProPlan()" class="w-full py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-crown"></i> Devenir Membre PRO
                     </button>
                 </div>
@@ -345,7 +331,7 @@
     <!-- Analytics Modal -->
     <div id="analyticsModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
-            <button data-close-modal="analyticsModal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
+            <button onclick="closeAnalyticsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -381,7 +367,7 @@
     <!-- Referral Modal -->
     <div id="referralModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
-            <button data-close-modal="referralModal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
+            <button onclick="closeReferralModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -397,7 +383,7 @@
                 <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Votre lien unique de parrainage</label>
                 <div class="flex items-center gap-2">
                     <input type="text" id="referralLinkInput" readonly class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-300 outline-none">
-                    <button id="copyReferralBtn" class="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1">
+                    <button onclick="copyReferralLink()" class="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1">
                         <i class="fa-solid fa-copy"></i> Copier
                     </button>
                 </div>
@@ -405,7 +391,689 @@
         </div>
     </div>
 
-    <!-- Application Logic (modules ES6) -->
-    <script type="module" src="src/js/main.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3b646d34e4d75de',t:'MTc4OTQ2MTEwMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+    <!-- Application Logic -->
+    <script>
+        window.GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwvt054Ryzs7mC-gchJaS27YNlOfLw-XhVkmKxysjPrpvONV4ScUaPdnD5G5FfCs2TpuA/exec";
+
+        let userEmail = localStorage.getItem('marketpulse_user_email') || '';
+        let isProUser = checkIfProUser(userEmail);
+        let lastGeneratedData = null;
+
+        function checkIfProUser(email) {
+            if (!email) return false;
+            return localStorage.getItem(`marketpulse_is_pro_${email.toLowerCase().trim()}`) === 'true';
+        }
+
+        function getUserCredits(email) {
+            if (!email) return 15;
+            const key = `marketpulse_credits_${email.toLowerCase().trim()}`;
+            const stored = localStorage.getItem(key);
+            return stored !== null ? parseInt(stored, 10) : 15;
+        }
+
+        function saveUserCredits(email, amount) {
+            if (!email) return;
+            const key = `marketpulse_credits_${email.toLowerCase().trim()}`;
+            localStorage.setItem(key, amount.toString());
+        }
+
+        let credits = getUserCredits(userEmail);
+        let totalWords = parseInt(localStorage.getItem('marketpulse_total_words') || '0');
+        let totalCampaigns = parseInt(localStorage.getItem('marketpulse_total_campaigns') || '0');
+        let detectedRefCode = "";
+
+        function updateProUI() {
+            const badge = document.getElementById('planBadge');
+            if (badge) {
+                if (isProUser) {
+                    badge.textContent = "PRO ✨";
+                    badge.className = "text-[10px] bg-amber-400 text-slate-950 font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm";
+                } else {
+                    badge.textContent = "Gratuit";
+                    badge.className = "text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider";
+                }
+            }
+        }
+
+        function activateProPlan() {
+            if (!userEmail) {
+                openOnboardingModal();
+                return;
+            }
+            isProUser = true;
+            localStorage.setItem(`marketpulse_is_pro_${userEmail.toLowerCase().trim()}`, 'true');
+            updateProUI();
+            closeChariowModal();
+            showToast("👑 Félicitations ! Votre Compte est désormais PRO !", "success");
+        }
+
+        function buyCreditPack(amount) {
+            if (!userEmail) {
+                openOnboardingModal();
+                return;
+            }
+            credits += amount;
+            saveUserCredits(userEmail, credits);
+            const userCreditsEl = document.getElementById('userCredits');
+            if (userCreditsEl) userCreditsEl.textContent = credits;
+            closeChariowModal();
+            showToast(`🎉 ${amount} Crédits ajoutés à votre solde !`, "success");
+        }
+
+        function checkReferralURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            detectedRefCode = urlParams.get('ref') || "";
+            
+            if (detectedRefCode) {
+                const refCodeInput = document.getElementById('referralCodeInput');
+                const refBanner = document.getElementById('referralBanner');
+                const badgeText = document.getElementById('signupCreditsBadge');
+                
+                if (refCodeInput) refCodeInput.value = detectedRefCode;
+                if (refBanner) refBanner.classList.remove('hidden');
+                if (badgeText) badgeText.textContent = "20 Crédits (15 + 5 Bonus Parrainage)";
+            }
+        }
+
+        function handleLanguageChange(selectEl) {
+            if (selectEl.value !== 'Français 🇫🇷' && !isProUser) {
+                showToast("🔒 Les langues internationales sont réservées au Plan PRO !", "error");
+                openChariowModal();
+                selectEl.value = 'Français 🇫🇷';
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('marketpulse_theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon(false);
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('marketpulse_theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+            showToast(isDark ? '🌙 Mode Sombre activé' : '☀️ Mode Clair activé', 'info');
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('themeIcon');
+            if (!icon) return;
+            icon.className = isDark ? 'fa-solid fa-sun text-amber-400' : 'fa-solid fa-moon text-slate-700 dark:text-slate-200';
+        }
+
+        function openAnalyticsModal() {
+            const modal = document.getElementById('analyticsModal');
+            if (!modal) return;
+            document.getElementById('statWords').textContent = totalWords;
+            document.getElementById('statCampaigns').textContent = totalCampaigns;
+            document.getElementById('statHours').textContent = (totalCampaigns * 0.5).toFixed(1) + 'h';
+            document.getElementById('statCredits').textContent = isProUser ? '∞ (PRO)' : credits;
+            modal.classList.remove('hidden');
+        }
+
+        function closeAnalyticsModal() {
+            document.getElementById('analyticsModal')?.classList.add('hidden');
+        }
+
+        function openReferralModal() {
+            const modal = document.getElementById('referralModal');
+            if (!modal) return;
+            const userRefCode = userEmail ? btoa(userEmail).substring(0, 8) : 'FREE15';
+            const refLink = `${window.location.origin}${window.location.pathname}?ref=${userRefCode}`;
+            const input = document.getElementById('referralLinkInput');
+            if (input) input.value = refLink;
+            modal.classList.remove('hidden');
+        }
+
+        function closeReferralModal() {
+            document.getElementById('referralModal')?.classList.add('hidden');
+        }
+
+        function openOnboardingModal() {
+            document.getElementById('onboardingModal')?.classList.remove('hidden');
+        }
+
+        function closeOnboardingModal() {
+            document.getElementById('onboardingModal')?.classList.add('hidden');
+        }
+
+        function openChariowModal() {
+            document.getElementById('chariowModal')?.classList.remove('hidden');
+        }
+
+        function closeChariowModal() {
+            document.getElementById('chariowModal')?.classList.add('hidden');
+        }
+
+        function copyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error("Copy failed:", err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function copyReferralLink() {
+            const linkInput = document.getElementById('referralLinkInput');
+            if (linkInput) {
+                copyTextToClipboard(linkInput.value);
+                showToast("🎁 Lien de parrainage copié !", "success");
+            }
+        }
+
+        function copySingleHook(text) {
+            copyTextToClipboard(text);
+            showToast("Accroche copiée !", "success");
+        }
+
+        function copySingleSection(type) {
+            if (!lastGeneratedData) return;
+            if (type === 'post') {
+                copyTextToClipboard(lastGeneratedData.post);
+                showToast("Post réseau social copié !", "success");
+            } else if (type === 'email') {
+                copyTextToClipboard(lastGeneratedData.email);
+                showToast("E-mail de prospection copié !", "success");
+            }
+        }
+
+        async function downloadImage(url, filename) {
+            try {
+                showToast("⏳ Préparation du téléchargement de l'image...", "info");
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename || 'visuel_publicitaire.jpg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+                showToast("🖼️ Image téléchargée avec succès !", "success");
+            } catch(err) {
+                console.log("Image fetch fallback:", err);
+                window.open(url, '_blank');
+                showToast("🖼️ Visuel ouvert dans un nouvel onglet.", "info");
+            }
+        }
+
+        function getCampaignImageUrl(brand, offer) {
+            const text = (brand + ' ' + offer).toLowerCase();
+            if (text.includes('resto') || text.includes('gourmand') || text.includes('cuisine') || text.includes('plat') || text.includes('grill')) {
+                return 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80';
+            } else if (text.includes('immo') || text.includes('villa') || text.includes('maison') || text.includes('appartement')) {
+                return 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80';
+            } else if (text.includes('ecom') || text.includes('shop') || text.includes('mode') || text.includes('livraison') || text.includes('tech')) {
+                return 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=800&q=80';
+            } else if (text.includes('coach') || text.includes('form') || text.includes('academ') || text.includes('etud')) {
+                return 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80';
+            } else {
+                return 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            checkReferralURL();
+            if (!userEmail) {
+                openOnboardingModal();
+            } else {
+                isProUser = checkIfProUser(userEmail);
+                credits = getUserCredits(userEmail);
+                const userCreditsEl = document.getElementById('userCredits');
+                if (userCreditsEl) userCreditsEl.textContent = isProUser ? '∞' : credits;
+                updateUserUI(userEmail);
+                updateProUI();
+                loadUserHistory(userEmail);
+            }
+        });
+
+        function handleOnboardingSubmit(e) {
+            e.preventDefault();
+            const emailInput = document.getElementById('onboardingEmail')?.value.trim();
+            const refCodeEntered = document.getElementById('referralCodeInput')?.value.trim();
+            if (!emailInput) return;
+
+            userEmail = emailInput;
+            localStorage.setItem('marketpulse_user_email', userEmail);
+            isProUser = checkIfProUser(userEmail);
+            
+            const existingCredits = localStorage.getItem(`marketpulse_credits_${userEmail.toLowerCase()}`);
+            if (existingCredits !== null) {
+                credits = parseInt(existingCredits, 10);
+                showToast(`Re-bienvenue ${userEmail} ! Solde actuel : ${credits} crédits.`, 'info');
+            } else if (refCodeEntered) {
+                credits = 20;
+                saveUserCredits(userEmail, credits);
+                showToast(`🎁 Compte créé ! 20 crédits activés (+5 bonus parrainage)`, 'success');
+            } else {
+                credits = 15;
+                saveUserCredits(userEmail, credits);
+                showToast(`Bienvenue ${userEmail} ! 15 crédits offerts.`, 'success');
+            }
+            
+            const userCreditsEl = document.getElementById('userCredits');
+            if (userCreditsEl) userCreditsEl.textContent = isProUser ? '∞' : credits;
+
+            updateUserUI(userEmail);
+            updateProUI();
+            closeOnboardingModal();
+            loadUserHistory(userEmail);
+
+            if (window.GOOGLE_SHEETS_URL) {
+                fetch(window.GOOGLE_SHEETS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: new Date().toLocaleString('fr-FR'),
+                        email: userEmail,
+                        referralCode: refCodeEntered || 'Aucun',
+                        credits: credits,
+                        source: 'SaaS MarketPulse AI'
+                    })
+                }).catch(err => console.log('Google Sheets Sync:', err));
+            }
+        }
+
+        function updateUserUI(email) {
+            credits = getUserCredits(email);
+            isProUser = checkIfProUser(email);
+            const userCreditsEl = document.getElementById('userCredits');
+            if (userCreditsEl) userCreditsEl.textContent = isProUser ? '∞' : credits;
+
+            const badge = document.getElementById('userProfileBadge');
+            const emailSpan = document.getElementById('displayUserEmail');
+            if (badge && emailSpan) {
+                emailSpan.textContent = email;
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+            }
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('marketpulse_user_email');
+            userEmail = '';
+            const badge = document.getElementById('userProfileBadge');
+            if (badge) {
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
+            }
+            clearUserHistoryUI();
+            showToast("Vous avez été déconnecté.", "info");
+            openOnboardingModal();
+        }
+
+        const PRESETS = {
+            ecom: {
+                brand: "Afrishop Express",
+                target: "Acheteurs en ligne & E-commerçants",
+                tone: "Urgent & Persuasif",
+                offer: "Livraison gratuite en 24h sur tous vos articles de mode & tech préférés avec paiement Mobile Money à la livraison !"
+            },
+            coaching: {
+                brand: "Digital Skills Academy",
+                target: "Jeunes professionnels & Reconversion",
+                tone: "Inspirant & Captivant",
+                offer: "Formation intensive de 4 semaines pour maîtriser le Marketing Digital et décrocher vos premiers clients freelances."
+            },
+            immo: {
+                brand: "Koffi Immo Prestige",
+                target: "Investisseurs & Familles",
+                tone: "Professionnel & Premium",
+                offer: "Villas de standing sécurisées à vendre avec facilités de paiement échelonnées et titres fonciers garantis."
+            },
+            resto: {
+                brand: "Le Lagon Gourmand",
+                target: "Amateurs de bonne cuisine & Familles",
+                tone: "Décontracté & Amusant",
+                offer: "Menu spécial Grillades & Fruits de Mer ce week-end avec -20% sur présentation de cette annonce !"
+            },
+            b2b: {
+                brand: "DigiCraft Marketing Agency",
+                target: "PME, Startups & Entreprises locales",
+                tone: "Professionnel & Premium",
+                offer: "Accompagnement 360° pour automatiser votre prospection client et multiplier vos ventes par 3 en 90 jours."
+            }
+        };
+
+        function applyPreset(key) {
+            const data = PRESETS[key];
+            if (!data) return;
+            document.getElementById('brandName').value = data.brand;
+            document.getElementById('targetAudience').value = data.target;
+            document.getElementById('campaignTone').value = data.tone;
+            document.getElementById('offerDetails').value = data.offer;
+            showToast(`🎯 Modèle "${data.brand}" appliqué !`, 'info');
+        }
+
+        async function generateCampaign(e) {
+            e.preventDefault();
+            credits = getUserCredits(userEmail);
+            isProUser = checkIfProUser(userEmail);
+
+            if (!isProUser && credits <= 0) {
+                showToast("Vous n'avez plus de crédits disponibles. Rechargez via Chariow !", 'error');
+                openChariowModal();
+                return;
+            }
+
+            const brand = document.getElementById('brandName').value;
+            const target = document.getElementById('targetAudience').value;
+            const tone = document.getElementById('campaignTone').value;
+            const lang = document.getElementById('generationLanguage').value;
+            const offer = document.getElementById('offerDetails').value;
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Génération en ${lang}...`;
+
+            if (!isProUser) {
+                credits--;
+                saveUserCredits(userEmail, credits);
+                document.getElementById('userCredits').textContent = credits;
+            }
+
+            try {
+                const generatedResult = {
+                    hooks: [
+                        `🚀 STOP ! Découvrez comment ${brand} révolutionne votre quotidien.`,
+                        `💡 Vous êtes ${target} ? Voici la solution que vous attendiez.`,
+                        `⚡ Atteignez vos objectifs 10x plus vite grâce à ${brand}.`
+                    ],
+                    post: `🔥 ALERTE NOUVEAUTÉ POUR LES ${target.toUpperCase()} !\n\nVous cherchez un moyen plus simple de réussir ? ${brand} est spécialement conçu pour vous.\n\n👉 Offre spéciale : ${offer}\n\nLien disponible maintenant en bio ! 🚀`,
+                    email: `Objet: Une opportunité exclusive pour les ${target}\n\nBonjour,\n\nNous savons à quel point votre temps est précieux. C'est pourquoi ${brand} a développé une solution sur mesure.\n\nEn savoir plus dès aujourd'hui !\n\nCordialement,`
+                };
+
+                const generatedTextLength = (generatedResult.hooks.join(' ') + generatedResult.post + generatedResult.email).split(/\s+/).length;
+                totalWords += generatedTextLength;
+                totalCampaigns += 1;
+                localStorage.setItem('marketpulse_total_words', totalWords);
+                localStorage.setItem('marketpulse_total_campaigns', totalCampaigns);
+
+                lastGeneratedData = { brand, target, tone, lang, offer, ...generatedResult };
+                renderResults(brand, generatedResult, tone, lang);
+                saveCampaignToLocalHistory(lastGeneratedData);
+                showToast(isProUser ? 'Campagne générée en Mode PRO !' : 'Campagne générée et sauvegardée ! (-1 crédit)', 'success');
+
+            } catch (err) {
+                console.error("Erreur de génération:", err);
+                showToast("Erreur lors de la génération.", 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-base"></i> Générer la Campagne ${isProUser ? '(Illimité PRO)' : '(1 crédit)'}`;
+            }
+        }
+
+        function saveCampaignToLocalHistory(campaign) {
+            if (!userEmail) return;
+            const key = `marketpulse_history_${userEmail.toLowerCase().trim()}`;
+            const existing = JSON.parse(localStorage.getItem(key) || '[]');
+            existing.unshift(campaign);
+            localStorage.setItem(key, JSON.stringify(existing.slice(0, 10)));
+            loadUserHistory(userEmail);
+        }
+
+        function loadUserHistory(email) {
+            if (!email) return;
+            const key = `marketpulse_history_${email.toLowerCase().trim()}`;
+            const history = JSON.parse(localStorage.getItem(key) || '[]');
+            const container = document.getElementById('historyList');
+            if (!container) return;
+
+            if (history.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Aucune campagne sauvegardée pour le moment.</p>`;
+                return;
+            }
+
+            container.innerHTML = history.map((item, index) => `
+                <div onclick="restoreCampaignFromHistory(${index})" class="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer transition-all space-y-1 group">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">${item.brand}</span>
+                        <span class="text-[9px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-bold">${item.tone}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 truncate">${item.hooks ? item.hooks[0] : ''}</p>
+                </div>
+            `).join('');
+        }
+
+        function restoreCampaignFromHistory(index) {
+            if (!userEmail) return;
+            const key = `marketpulse_history_${userEmail.toLowerCase().trim()}`;
+            const history = JSON.parse(localStorage.getItem(key) || '[]');
+            const campaign = history[index];
+            if (!campaign) return;
+
+            document.getElementById('brandName').value = campaign.brand || '';
+            document.getElementById('targetAudience').value = campaign.target || '';
+            document.getElementById('campaignTone').value = campaign.tone || '';
+            document.getElementById('offerDetails').value = campaign.offer || '';
+
+            lastGeneratedData = campaign;
+            renderResults(campaign.brand, campaign, campaign.tone, campaign.lang || 'Français 🇫🇷');
+            showToast(`📂 Campagne "${campaign.brand}" rechargée !`, 'info');
+        }
+
+        function clearUserHistoryUI() {
+            const container = document.getElementById('historyList');
+            if (container) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Connectez-vous pour voir votre historique.</p>`;
+            }
+        }
+
+        function renderResults(brand, data, tone, lang) {
+            const container = document.getElementById('resultsContainer');
+            if (!container) return;
+            const imageUrl = getCampaignImageUrl(brand, lastGeneratedData ? lastGeneratedData.offer : '');
+            
+            container.innerHTML = `
+                <div id="exportableCampaignContent" class="space-y-4">
+                    <!-- Visual Mockup Réseaux Sociaux -->
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <i class="fa-brands fa-linkedin text-blue-600 dark:text-blue-400 text-sm"></i> Prévisualisation Mockup Réseau Social (${lang || 'FR'})
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="copySingleSection('post')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
+                                    <i class="fa-solid fa-copy text-blue-500"></i> Copier le Post
+                                </button>
+                                <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded">Aperçu Réaliste</span>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-3 font-sans">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-amber-400 flex items-center justify-center text-white font-extrabold text-sm shadow-sm">
+                                        ${brand.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-extrabold text-slate-900 dark:text-white">${brand}</h4>
+                                        <p class="text-[10px] text-slate-400">Compte Officiel • À l'instant • 🌐</p>
+                                    </div>
+                                </div>
+                                <button class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-xs font-bold flex items-center gap-1">
+                                    <i class="fa-solid fa-plus text-[10px]"></i> Suivre
+                                </button>
+                            </div>
+
+                            <div class="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-normal">
+                                ${data.post}
+                            </div>
+
+                            <!-- Image Visuelle Générée Publicitaire avec Bouton Télécharger -->
+                            <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm my-2 relative group">
+                                <img src="${imageUrl}" alt="Visuel Publicitaire ${brand}" class="w-full h-48 sm:h-56 object-cover hover:scale-105 transition-all duration-300">
+                                <button onclick="downloadImage('${imageUrl}', 'visuel_${brand.toLowerCase().replace(/\s+/g, '_')}.jpg')" class="absolute top-3 right-3 bg-slate-900/85 hover:bg-slate-900 text-white text-xs px-3 py-1.5 rounded-xl font-bold backdrop-blur-md shadow-lg transition-all flex items-center gap-1.5">
+                                    <i class="fa-solid fa-download text-amber-400"></i> Télécharger l'image
+                                </button>
+                            </div>
+
+                            <div class="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
+                                <button class="hover:text-blue-600 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                    <i class="fa-regular fa-thumbs-up text-amber-500"></i> J'aime (42)
+                                </button>
+                                <button class="hover:text-blue-600 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                    <i class="fa-regular fa-comment"></i> Commenter (12)
+                                </button>
+                                <button class="hover:text-blue-600 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all font-semibold">
+                                    <i class="fa-solid fa-share"></i> Partager
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hooks Card -->
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
+                        <span class="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt text-amber-500"></i> 3 Accroches Virales (Hooks)
+                        </span>
+                        <ul class="space-y-2 text-xs text-slate-800 dark:text-slate-200">
+                            ${data.hooks.map(h => `<li class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 font-medium flex items-center justify-between group">
+                                <span>${h}</span>
+                                <button onclick="copySingleHook('${h.replace(/'/g, "\\'")}');" class="text-slate-400 hover:text-blue-600 text-xs p-1" title="Copier cette accroche">
+                                    <i class="fa-solid fa-copy"></i>
+                                </button>
+                            </li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <!-- Email Card -->
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-envelope text-blue-500"></i> E-mail de Prospection (Cold Email)
+                            </span>
+                            <button onclick="copySingleSection('email')" class="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
+                                <i class="fa-solid fa-copy text-blue-500"></i> Copier l'E-mail
+                            </button>
+                        </div>
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed">
+                            ${data.email}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function exportToTXT() {
+            if (!lastGeneratedData) {
+                showToast("Aucune campagne générée à exporter.", "error");
+                return;
+            }
+
+            const txtContent = `================================================
+MARKETPULSE AI - RAPPORT DE CAMPAGNE
+================================================
+Marque : ${lastGeneratedData.brand}
+Cible  : ${lastGeneratedData.target}
+Ton    : ${lastGeneratedData.tone}
+Langue : ${lastGeneratedData.lang || 'Français'}
+Date   : ${new Date().toLocaleString('fr-FR')}
+================================================
+
+--- 1. ACCROCHES VIRALES (HOOKS) ---
+${lastGeneratedData.hooks.map((h, i) => `[Accroche ${i+1}] ${h}`).join('\n')}
+
+--- 2. POST POUR RÉSEAUX SOCIAUX ---
+${lastGeneratedData.post}
+
+--- 3. E-MAIL DE PROSPECTION ---
+${lastGeneratedData.email}
+
+================================================
+Généré automatiquement par MarketPulse AI
+================================================`;
+
+            const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `campagne_${lastGeneratedData.brand.toLowerCase().replace(/\s+/g, '_')}.txt`;
+            link.click();
+            showToast("📄 Fichier TXT téléchargé !", "success");
+        }
+
+        function exportToPDF() {
+            if (!isProUser) {
+                showToast("🔒 L'export PDF est réservé aux membres PRO !", "error");
+                openChariowModal();
+                return;
+            }
+
+            const element = document.getElementById('exportableCampaignContent');
+            if (!element || !lastGeneratedData) {
+                showToast("Aucune campagne générée à exporter.", "error");
+                return;
+            }
+
+            const opt = {
+                margin:       10,
+                filename:     `campagne_${lastGeneratedData.brand.toLowerCase().replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            showToast("⏳ Génération du PDF en cours...", "info");
+            html2pdf().set(opt).from(element).save().then(() => {
+                showToast("📄 Fichier PDF téléchargé !", "success");
+            }).catch(err => {
+                console.error("PDF Export Error:", err);
+                showToast("Erreur lors de la création du PDF.", "error");
+            });
+        }
+
+        function copyGeneratedContent() {
+            if (!lastGeneratedData) {
+                showToast("Aucune campagne à copier.", "error");
+                return;
+            }
+            const fullText = `=== ACCROCHES ===\n${lastGeneratedData.hooks.join('\n')}\n\n=== POST RÉSEAUX SOCIAUX ===\n${lastGeneratedData.post}\n\n=== COLD EMAIL ===\n${lastGeneratedData.email}`;
+            copyTextToClipboard(fullText);
+            showToast("Toute la campagne a été copiée !", "success");
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-xl text-xs font-bold text-white shadow-xl flex items-center gap-2 pointer-events-auto transition-all transform translate-y-2 opacity-0 ${
+                type === 'success' ? 'bg-emerald-600' :
+                type === 'error' ? 'bg-rose-600' : 'bg-slate-900 dark:bg-slate-800'
+            }`;
+            
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info'} text-sm"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3500);
+        }
+    </script>
+</body>
 </html>
