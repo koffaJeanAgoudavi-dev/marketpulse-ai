@@ -1,0 +1,35 @@
+{
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022
+  },
+  "rules": {
+    "no-undef": "error",
+    "no-unreachable": "error",
+    "no-unexpected-multiline": "error",
+    "no-invalid-regexp": "error",
+    "constructor-super": "error",
+    "getter-return": "error",
+    "no-dupe-keys": "error",
+    "no-dupe-args": "error",
+    "no-func-assign": "error",
+    "no-import-assign": "error",
+    "no-setter-return": "error",
+    "no-sparse-arrays": "error",
+    "no-this-before-super": "error",
+    "no-constant-condition": "warn",
+    "no-unused-vars": "off",
+    "camelcase": "off",
+    "quotes": "off",
+    "object-curly-spacing": "off",
+    "array-bracket-spacing": "off",
+    "arrow-parens": "off",
+    "indent": "off",
+    "max-len": "off",
+    "require-jsdoc": "off",
+    "valid-jsdoc": "off"
+  }
+}
