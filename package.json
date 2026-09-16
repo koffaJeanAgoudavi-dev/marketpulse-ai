@@ -1,0 +1,18 @@
+{
+  "name": "marketpulse-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Studio marketing IA omnicanal",
+  "scripts": {
+    "test": "npm run test:frontend && npm run test:functions",
+    "test:frontend": "node --experimental-default-type=module tests/phase2b.test.js && for file in tests/phase3b.test.js tests/phase4a.test.js tests/phase4b1.test.js tests/phase4b2-env.test.js tests/phase4b2-fix.test.js tests/phase4b2.test.js; do node \"$file\" || exit 1; done",
+    "test:functions": "node --check functions/index.js",
+    "test:rules": "node tests/firestore.rules.test.js",
+    "lint": "npm --prefix functions run lint",
+    "check": "npm run lint && npm test",
+    "serve": "firebase emulators:start --only functions,firestore,auth"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
