@@ -117,8 +117,8 @@ async function callGeminiAPI(params, apiKey) {
   const prompt = buildGeminiPrompt(params);
 
   // Utilise fetch (Node 20 natif) pour appeler Gemini API
-  // Modèle: gemini-2.5-flash (Phase 4B.2-FIX)
-  const model = 'gemini-2.5-flash';
+  // Modèle: gemini-3.6-flash (modèle actuel autorisé pour les nouveaux utilisateurs)
+  const model = 'gemini-3.6-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const requestBody = {

@@ -9,19 +9,19 @@ Appliquer UNIQUEMENT les corrections listées, sans refactor général.
 
 ## Corrections appliquées
 
-### 1. Update Gemini model: ancien modèle (1.5) -> gemini-2.5-flash
+### 1. Update Gemini model: ancien modèle (1.5) -> gemini-3.6-flash
 
 **Problème:** Code utilisait encore `ancien modèle (1.5)` (modèle legacy). Risque dépréciation, performances moindres.
 
 **Solution:**
-- `functions/src/gemini.js` ligne 84: `const model = 'gemini-2.5-flash'` (était ancien modèle)
+- `functions/src/gemini.js` ligne 84: `const model = 'gemini-3.6-flash'` (était ancien modèle)
 - `docs/PHASE_4B.2_REPORT.md`: remplacement global 1.5 -> 2.5
 - Vérification grep global: zéro référence active `ancien modèle (1.5)` dans code/tests/constants/docs
 
 **Impact:**
 - Modèle plus récent, rapide, économique
 - Aucun changement mécanisme call (fetch + generativelanguage.googleapis.com conservé)
-- Tests 27 FIX vérifient model=2.5-flash et absence 1.5
+- Tests 27 FIX vérifient model=3.6-flash et absence 1.5
 
 ### 2. Prevent fraudulent Firestore creation source:"gemini" client
 
@@ -93,7 +93,7 @@ Scénario: `debit -> generation starts -> crash/timeout avant final save -> gene
 ## Fichiers créés
 
 - `tests/phase4b2-fix.test.js` (27 tests)
-  - Model 2.5-flash no 1.5 ref (4 tests)
+  - Model 3.6-flash no 1.5 ref (4 tests)
   - Firestore Rules template PASS legacy PASS gemini DENY backend PASS (5 tests)
   - Stale recovery 8 cas + logique (12 tests)
   - Non-régression auth/secrets/Chariow (6 tests)
@@ -102,7 +102,7 @@ Scénario: `debit -> generation starts -> crash/timeout avant final save -> gene
 ## Fichiers modifiés
 
 - `functions/src/gemini.js`
-  - L84: model `ancien modèle (1.5)` -> `gemini-2.5-flash`
+  - L84: model `ancien modèle (1.5)` -> `gemini-3.6-flash`
   - Commentaire mis à jour Phase 4B.2-FIX
 
 - `firestore.rules`
@@ -130,7 +130,7 @@ Scénario: `debit -> generation starts -> crash/timeout avant final save -> gene
   - Phase strings mis à jour `4B.2-FIX` pour idempotence returns
 
 - `docs/PHASE_4B.2_REPORT.md`
-  - Remplacement global `ancien modèle` -> `2.5-flash`
+  - Remplacement global `ancien modèle` -> `3.6-flash`
 
 - `tests/firestore.rules.test.js`
   - Test campaigns mis à jour pour vérifier `['template','legacy']` et absence `gemini`
@@ -138,7 +138,7 @@ Scénario: `debit -> generation starts -> crash/timeout avant final save -> gene
 ## Tests PASS counts
 
 - **Phase 4B.2-FIX:** 27/27 PASS
-  - Model 2.5-flash: 4 PASS
+  - Model 3.6-flash: 4 PASS
   - Rules 4 cas: 5 PASS
   - Stale recovery 8 cas: 12 PASS (inclut 2 vérifs structure)
   - Non-régression: 6 PASS
@@ -159,7 +159,7 @@ Scénario: `debit -> generation starts -> crash/timeout avant final save -> gene
 
 ## Validation critères obligatoires
 
-- [x] **Modèle pas 1.5:** `gemini.js` contient `gemini-2.5-flash`, grep global zéro référence active `ancien modèle (1.5)` dans code/tests/constants/docs
+- [x] **Modèle pas 1.5:** `gemini.js` contient `gemini-3.6-flash`, grep global zéro référence active `ancien modèle (1.5)` dans code/tests/constants/docs
 - [x] **Client ne peut pas créer gemini:** `firestore.rules` `source in ['template','legacy']`, test client gemini DENIED, backend gemini PASS via Admin bypass
 - [x] **Stale pas de perte crédit:** `old -1 + refund +1 + new -1 = net -1`, test final crédits corrects
 - [x] **Refund pas double:** idempotent `refund_{genId}`, test refund seulement une fois, pas double même si recovery 2 fois

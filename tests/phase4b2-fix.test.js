@@ -2,7 +2,7 @@
  * MarketPulse AI - Tests Phase 4B.2-FIX - Sécurisation et récupération des générations
  * 
  * Corrections:
- * 1. Gemini model 2.5-flash, zero ref 1.5-flash
+ * 1. Gemini model 3.6-flash, zero ref 1.5-flash
  * 2. Firestore Rules client template/legacy PASS, gemini DENY, backend gemini PASS
  * 3. Stale recovery >10min avec refund idempotent, pas de double refund, pas de perte crédit
  */
@@ -21,16 +21,16 @@ function assert(c, m) { if (!c) throw new Error(m); }
 console.log('=== Tests Phase 4B.2-FIX - Sécurisation et récupération ===\n');
 
 // ==================== 1. GEMINI MODEL ====================
-console.log('--- 1. Gemini Model 2.5-flash ---');
+console.log('--- 1. Gemini Model 3.6-flash ---');
 
-test('Gemini model est gemini-2.5-flash dans gemini.js', () => {
+test('Gemini model est gemini-3.6-flash dans gemini.js', () => {
   const content = fs.readFileSync(path.join(__dirname, '..', 'functions/src/gemini.js'), 'utf8');
-  assert(content.includes('gemini-2.5-flash'), 'contient gemini-2.5-flash');
+  assert(content.includes('gemini-3.6-flash'), 'contient gemini-3.6-flash');
   assert(!content.includes('gemini-1.5-flash'), 'ne contient plus gemini-1.5-flash');
   // Vérifie constante model
   const modelMatch = content.match(/const\s+model\s*=\s*['\"]([^'\"]+)['\"]/);
   assert(modelMatch, 'const model définie');
-  assert(modelMatch[1] === 'gemini-2.5-flash', `model doit être 2.5-flash, trouvé ${modelMatch[1]}`);
+  assert(modelMatch[1] === 'gemini-3.6-flash', `model doit être 3.6-flash, trouvé ${modelMatch[1]}`);
 });
 
 test('Aucune référence active à gemini-1.5-flash dans code/tests/constants/docs', () => {
@@ -76,9 +76,9 @@ test('Docs PHASE_4B.2_REPORT.md ne contient plus 1.5-flash actif', () => {
     const content = fs.readFileSync(docPath, 'utf8');
     // Doit avoir été mis à jour vers 2.5
     if (content.includes('gemini-1.5-flash')) {
-      throw new Error('docs/PHASE_4B.2_REPORT.md contient encore gemini-1.5-flash, doit être 2.5-flash');
+      throw new Error('docs/PHASE_4B.2_REPORT.md contient encore gemini-1.5-flash, doit être 3.6-flash');
     }
-    assert(content.includes('gemini-2.5-flash') || content.includes('2.5-flash'), 'docs mentionne 2.5-flash');
+    assert(content.includes('gemini-3.6-flash') || content.includes('3.6-flash'), 'docs mentionne 3.6-flash');
   }
 });
 

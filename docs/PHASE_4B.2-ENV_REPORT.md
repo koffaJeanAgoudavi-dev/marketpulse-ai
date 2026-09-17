@@ -14,7 +14,7 @@
   - Aucune clé en dur, aucun echo de valeur, .env gitignored
 
 - `tests/phase4b2-env.test.js` (24 tests)
-  - Vérifie nouveau mécanisme process.env, absence defineSecret, pas de clé hardcodée, modèle 2.5-flash, GEMINI_KEY_NOT_CONFIGURED, sécurité frontend, workflow sécurisé, non-régression Auth/crédits/idempotence/refund/stale recovery/rules
+  - Vérifie nouveau mécanisme process.env, absence defineSecret, pas de clé hardcodée, modèle 3.6-flash, GEMINI_KEY_NOT_CONFIGURED, sécurité frontend, workflow sécurisé, non-régression Auth/crédits/idempotence/refund/stale recovery/rules
 
 ## 2. Fichiers modifiés
 
@@ -23,7 +23,7 @@
   - `getGeminiApiKey()` récupère uniquement `process.env.GEMINI_API_KEY`, `trim()`, erreur `GEMINI_KEY_NOT_CONFIGURED` si absente/vide, warn format suspect sans logger clé
   - `callGeminiAPI` doc mise à jour (depuis process.env)
   - `module.exports` ne contient plus `GEMINI_API_KEY_SECRET`
-  - Modèle conservé `gemini-2.5-flash`, logique Gemini intacte
+  - Modèle conservé `gemini-3.6-flash`, logique Gemini intacte
 
 - `functions/index.js`
   - Suppression import `defineSecret` et `const GEMINI_API_KEY_SECRET = defineSecret(...)`
@@ -74,7 +74,7 @@ functions/src/gemini.js getGeminiApiKey()
   - Jamais loggée, jamais retournée frontend
   ↓
 secureGenerateCampaign -> generateCampaignWithGemini -> callGeminiAPI
-  - modèle gemini-2.5-flash conservé
+  - modèle gemini-3.6-flash conservé
   - Sécurité: Auth, validation, idempotence, débit, refund, stale recovery inchangés
 ```
 

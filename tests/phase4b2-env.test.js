@@ -8,7 +8,7 @@
  * - process.env.GEMINI_API_KEY utilisé backend
  * - aucune clé hardcodée
  * - aucune ref active defineSecret('GEMINI_API_KEY')
- * - gemini-2.5-flash actif, pas 1.5-flash
+ * - gemini-3.6-flash actif, pas 1.5-flash
  * - absence -> GEMINI_KEY_NOT_CONFIGURED
  * - non-régression Auth, crédits, idempotence, remboursement, stale recovery, Firestore Rules
  * - workflow GitHub Actions sécurisé
@@ -139,12 +139,12 @@ test('Aucune référence active defineSecret GEMINI_API_KEY dans code', () => {
   }
 });
 
-test('Modèle gemini-2.5-flash reste actif, pas 1.5-flash', () => {
+test('Modèle gemini-3.6-flash actif, pas 1.5-flash', () => {
   const content = fs.readFileSync(path.join(__dirname, '..', 'functions/src/gemini.js'), 'utf8');
-  assert(content.includes('gemini-2.5-flash'), '2.5-flash actif');
+  assert(content.includes('gemini-3.6-flash'), '3.6-flash actif');
   assert(!content.includes('gemini-1.5-flash'), 'pas de 1.5-flash');
   const modelMatch = content.match(/const\s+model\s*=\s*['\"]([^'\"]+)['\"]/);
-  assert(modelMatch && modelMatch[1] === 'gemini-2.5-flash', 'const model = 2.5-flash');
+  assert(modelMatch && modelMatch[1] === 'gemini-3.6-flash', 'const model = 3.6-flash');
 });
 
 // --- 2. Sécurité ---

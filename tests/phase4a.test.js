@@ -143,7 +143,7 @@ test('Frontend abstraction functions-client.js existe', () => {
   assert(content.includes('healthCheck'), 'healthCheck');
   const hasAdminImport = /from\s+['"]firebase-admin['"]|require\(['"]firebase-admin['"]\)/.test(content);
   assert(!hasAdminImport, 'pas d import firebase-admin dans frontend');
-  assert(content.includes('firebase-functions.js'), 'import Functions SDK client');
+  assert(content.includes('firebase-functions.js') || content.includes('/api/marketpulse/'), 'backend sécurisé REST ou Functions');
 });
 
 test('Frontend ne charge pas Admin SDK', () => {

@@ -276,8 +276,8 @@ firebase functions:secrets:set GEMINI_API_KEY
 **Si secret non configuré:** Fonction retourne erreur propre `failed-precondition GEMINI_KEY_NOT_CONFIGURED` avec message "Service de génération temporairement indisponible. Clé API non configurée côté serveur."
 
 **Appel API:**
-- Modèle: `gemini-2.5-flash`
-- URL: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+- Modèle: `gemini-3.6-flash`
+- URL: `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`
 - Fetch Node 20 natif, pas de clé dans logs, pas de clé retournée frontend
 - `generationConfig: { temperature: 0.8, maxOutputTokens: 2048, responseMimeType: 'application/json' }`
 
@@ -675,7 +675,7 @@ Console errors: 0
 ```
 functions/src/validation.js (4.5K) - validateGenerationParams, validateGenerationId, validateGeminiOutput, LIMITS, cleanString
 functions/src/generations.js (5.8K) - getGeneration, createGenerationProcessing transaction idempotence, updateGenerationWithTransaction, markGenerationCompleted, markGenerationFailed, getCampaignById, stratégie 5min processing
-functions/src/gemini.js (6.2K) - GEMINI_API_KEY_SECRET defineSecret, getGeminiApiKey, buildGeminiPrompt, callGeminiAPI fetch gemini-2.5-flash, generateCampaignWithGemini, gestion erreurs 400/401/403/429/500
+functions/src/gemini.js (6.2K) - GEMINI_API_KEY_SECRET defineSecret, getGeminiApiKey, buildGeminiPrompt, callGeminiAPI fetch gemini-3.6-flash, generateCampaignWithGemini, gestion erreurs 400/401/403/429/500
 functions/src/campaigns.js (2.8K) - generateCampaignId, saveCampaignAdmin avec source gemini, generationId, compatible history.js, update stats
 tests/phase4b2.test.js (42 tests) - Auth, Validation, Idempotence, Crédit, Gemini, Remboursement, Firestore, Sécurité, Non-régression
 docs/PHASE_4B.2_REPORT.md (ce rapport)
@@ -725,7 +725,7 @@ functions/
 │   ├── credits.js (debitCreditAdmin transaction, refundCreditAdmin idempotent refund_{genId}, checkBalanceAdmin, isUserPro plan canonique)
 │   ├── validation.js (LIMITS, cleanString, validateGenerationId gen_, validateGenerationParams, validateGeminiOutput)
 │   ├── generations.js (getGeneration, createGenerationProcessing idempotence, updateGenerationWithTransaction, markCompleted/Failed, getCampaignById, 5min timeout)
-│   ├── gemini.js (GEMINI_API_KEY_SECRET defineSecret, getGeminiApiKey, buildGeminiPrompt JSON strict, callGeminiAPI fetch gemini-2.5-flash, generateCampaignWithGemini)
+│   ├── gemini.js (GEMINI_API_KEY_SECRET defineSecret, getGeminiApiKey, buildGeminiPrompt JSON strict, callGeminiAPI fetch gemini-3.6-flash, generateCampaignWithGemini)
 │   └── campaigns.js (generateCampaignId cmp_, saveCampaignAdmin source gemini + generationId + compatible history.js)
 └── .gitignore
 
