@@ -39,3 +39,190 @@ textarea:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
+
+/* --------------------------------------------------------------------------
+   MarketPulse visual refresh — dark glass studio inspired by the reference
+   -------------------------------------------------------------------------- */
+:root {
+  --mp-ink: #07111f;
+  --mp-panel: rgba(19, 36, 61, 0.72);
+  --mp-panel-soft: rgba(42, 67, 101, 0.5);
+  --mp-line: rgba(157, 190, 231, 0.2);
+  --mp-muted: #9eb0c9;
+  --mp-lime: #b8ff5a;
+  --mp-cyan: #5ad8ff;
+  --mp-ease: cubic-bezier(.23, 1, .32, 1);
+}
+
+html,
+body {
+  background: var(--mp-ink) !important;
+}
+
+body {
+  color: #f5f8fc !important;
+  background-image:
+    radial-gradient(circle at 12% 12%, rgba(69, 123, 190, .28), transparent 28rem),
+    radial-gradient(circle at 90% 28%, rgba(46, 197, 223, .14), transparent 24rem),
+    linear-gradient(135deg, #07111f 0%, #102541 48%, #09182b 100%) !important;
+  background-attachment: fixed;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .18;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+}
+
+header {
+  background: rgba(7, 17, 31, .72) !important;
+  border-color: var(--mp-line) !important;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .18);
+}
+
+header h1 {
+  letter-spacing: -.04em;
+  color: #fff !important;
+}
+
+header h1::after {
+  content: ' / AI CAMPAIGN STUDIO';
+  color: var(--mp-lime);
+  font-size: 8px;
+  letter-spacing: .16em;
+  align-self: center;
+}
+
+header p,
+main label,
+main .text-slate-500,
+main .text-slate-400 {
+  color: var(--mp-muted) !important;
+}
+
+main {
+  position: relative;
+  padding-top: 2.5rem !important;
+  padding-bottom: 4rem !important;
+}
+
+main::before {
+  content: 'BUILD YOUR NEXT CAMPAIGN';
+  display: block;
+  grid-column: 1 / -1;
+  color: var(--mp-lime);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .22em;
+  margin-bottom: -1rem;
+}
+
+main > section > div,
+main > section > article,
+#historyList,
+[data-modal-overlay] > div {
+  background: linear-gradient(145deg, rgba(46, 72, 108, .78), rgba(12, 27, 48, .86)) !important;
+  border-color: var(--mp-line) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  backdrop-filter: blur(22px);
+}
+
+main > section:first-child > div:first-child {
+  border-radius: 30px !important;
+  transform: translateY(0);
+  transition: transform .25s var(--mp-ease), box-shadow .25s var(--mp-ease);
+}
+
+main > section:first-child > div:first-child:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .32), inset 0 1px 0 rgba(255,255,255,.1) !important;
+}
+
+input,
+select,
+textarea,
+main .bg-slate-50,
+main .bg-slate-100,
+main .bg-slate-800 {
+  color: #f7fbff !important;
+  background: rgba(7, 18, 34, .52) !important;
+  border-color: var(--mp-line) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #7e93ae !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--mp-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(90, 216, 255, .12) !important;
+}
+
+button {
+  transition: transform .18s var(--mp-ease), box-shadow .18s var(--mp-ease), filter .18s ease !important;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+button:active:not(:disabled) {
+  transform: scale(.97);
+}
+
+#generateBtn,
+#rechargeBtn,
+#buy50Btn,
+#activateProBtn {
+  color: #07111f !important;
+  background: linear-gradient(100deg, var(--mp-lime), #d4ff91) !important;
+  box-shadow: 0 12px 28px rgba(184, 255, 90, .2) !important;
+}
+
+#generateBtn {
+  border-radius: 16px !important;
+  letter-spacing: .01em;
+}
+
+#userCredits,
+#planBadge {
+  color: var(--mp-lime) !important;
+}
+
+.preset-btn,
+#analyticsBtn,
+#referralBtn,
+#themeToggleBtn {
+  color: #dce9f8 !important;
+  background: rgba(62, 92, 132, .48) !important;
+  border-color: var(--mp-line) !important;
+}
+
+#resultsContainer,
+#historyContainer {
+  border-radius: 28px !important;
+}
+
+[data-modal-overlay] {
+  background: rgba(3, 10, 20, .78) !important;
+}
+
+@media (max-width: 640px) {
+  header h1::after,
+  main::before {
+    display: none;
+  }
+
+  main {
+    padding-top: 1.25rem !important;
+  }
+}
