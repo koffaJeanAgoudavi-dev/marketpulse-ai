@@ -136,6 +136,27 @@ export async function getCurrentFirebaseUser() {
   return auth.currentUser;
 }
 
+/** Attend la restauration de session Firebase après un rechargement de page. */
+export async function waitForCurrentFirebaseUser(timeoutMs = 5000) {
+  const auth = await getAuthInstance();
+  if (!auth) return null;
+  if (auth.currentUser) return auth.currentUser;
+
+  const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+  return new Promise((resolve) => {
+    let settled = false;
+    let unsubscribe = () => {};
+    const finish = (user) => {
+      if (settled) return;
+      settled = true;
+      unsubscribe();
+      resolve(user || null);
+    };
+    unsubscribe = onAuthStateChanged(auth, finish);
+    setTimeout(() => finish(auth.currentUser), timeoutMs);
+  });
+}
+
 /**
  * Écoute changements session (login/logout)
  * @param {function} callback - (user|null) => void

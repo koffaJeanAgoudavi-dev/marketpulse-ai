@@ -15,6 +15,7 @@ export {
   loginUser,
   logoutFirebaseUser,
   getCurrentFirebaseUser,
+  waitForCurrentFirebaseUser,
   onFirebaseAuthStateChanged,
   sendVerificationEmail,
   isEmailVerified,

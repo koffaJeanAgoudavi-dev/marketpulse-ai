@@ -19,10 +19,10 @@ function getBackendUrl() {
 }
 
 async function getFirebaseIdToken() {
-  const { getCurrentFirebaseUser } = await import('./auth.js');
-  const user = await getCurrentFirebaseUser();
+  const { waitForCurrentFirebaseUser } = await import('./auth.js');
+  const user = await waitForCurrentFirebaseUser();
   if (!user) return null;
-  return user.getIdToken();
+  return user.getIdToken(true);
 }
 
 /**
@@ -69,6 +69,15 @@ export async function callBackendFunction(functionName, data = {}) {
 
   try {
     const token = await getFirebaseIdToken();
+    if (functionName !== 'healthCheck' && !token) {
+      return {
+        data: null,
+        error: {
+          code: 'auth/no-token',
+          message: 'Session Firebase introuvable. Veuillez vous reconnecter puis réessayer.',
+        },
+      };
+    }
     const endpoint = `${getBackendUrl()}/api/marketpulse/${endpointNames[functionName]}`;
     const response = await fetch(endpoint, {
       method: functionName === 'healthCheck' ? 'GET' : 'POST',

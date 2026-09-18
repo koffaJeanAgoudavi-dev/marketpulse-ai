@@ -131,6 +131,12 @@ export async function generateCampaign(e) {
         return;
       }
 
+      if (error.code === 'auth/no-token') {
+        showToast("🔐 Session Firebase expirée. Déconnectez-vous, reconnectez-vous, puis réessayez.", "error");
+        openOnboardingModal();
+        return;
+      }
+
       if (error.code === 'functions-unavailable') {
         showToast("❌ Backend temporairement indisponible. Veuillez réessayer plus tard.", "error");
         return;
