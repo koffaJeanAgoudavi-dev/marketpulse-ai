@@ -1,457 +1,96 @@
 <!DOCTYPE html>
 <html lang="fr" class="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MarketPulse AI - Studio Omnicanal Pro</title>
-    <!-- Backend REST sécurisé : Firebase Auth transmet son jeton au serveur -->
-    <script>
-        window.__MARKETPULSE_BACKEND_URL__ = 'https://3000-i16tsehmgscl3ekbpemgm-b09eb31f.us1.manus.computer';
-    </script>
-    <!-- Tailwind CSS CDN (conservé Phase 1A pour stabilité visuelle) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'brand-blue': '#2563eb',
-                        'brand-dark': '#0f172a'
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- html2pdf.js pour export PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
-    <!-- Chariow Widget Integration Scripts -->
-    <script src="https://js.chariowcdn.com/v1/widget.min.js" async></script>
-    <link rel="stylesheet" href="https://js.chariowcdn.com/v1/widget.min.css">
-
-    <!-- Styles modulaires Phase 1A -->
-    <link rel="stylesheet" href="src/styles/main.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MarketPulse AI — Creative Intelligence Studio</title>
+  <script>window.__MARKETPULSE_BACKEND_URL__ = 'https://3000-i16tsehmgscl3ekbpemgm-b09eb31f.us1.manus.computer';</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://js.chariowcdn.com/v1/widget.min.js" async></script>
+  <link rel="stylesheet" href="https://js.chariowcdn.com/v1/widget.min.css">
+  <link rel="stylesheet" href="src/styles/main.css">
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-200">
-
-    <!-- Header Navigation -->
-    <header class="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-amber-400 flex items-center justify-center text-white shadow-md">
-                    <i class="fa-solid fa-chart-line text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg font-extrabold flex items-center gap-2">
-                        MarketPulse AI
-                        <span id="planBadge" class="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">Gratuit</span>
-                    </h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Studio Marketing IA Omnicanal</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 sm:gap-3">
-                <!-- Analytics Button -->
-                <button id="analyticsBtn" class="text-xs font-semibold px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center gap-1.5">
-                    <i class="fa-solid fa-chart-pie text-blue-500"></i>
-                    <span class="hidden md:inline">Analytics</span>
-                </button>
-
-                <!-- Referral Button -->
-                <button id="referralBtn" class="text-xs font-bold px-3 py-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-xl transition-all flex items-center gap-1.5">
-                    <i class="fa-solid fa-gift"></i>
-                    <span>+5 Crédits</span>
-                </button>
-
-                <!-- Theme Switcher -->
-                <button id="themeToggleBtn" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-700 dark:text-slate-200" title="Changer le thème">
-                    <i id="themeIcon" class="fa-solid fa-moon"></i>
-                </button>
-
-                <!-- User Profile Badge -->
-                <div id="userProfileBadge" class="hidden items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700">
-                    <i class="fa-solid fa-user text-blue-500"></i>
-                    <span id="displayUserEmail" class="max-w-[120px] truncate"></span>
-                    <button id="logoutBtn" class="text-slate-400 hover:text-rose-500 ml-1" title="Déconnexion">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    </button>
-                </div>
-
-                <!-- Credits Badge -->
-                <div class="flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/30 px-3 py-1.5 rounded-xl text-xs font-extrabold text-amber-600 dark:text-amber-400">
-                    <i class="fa-solid fa-coins"></i>
-                    <span id="userCredits">15</span>
-                </div>
-
-                <!-- Recharge / PRO Button -->
-                <button id="rechargeBtn" class="text-xs font-bold px-3.5 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 rounded-xl shadow-md transition-all flex items-center gap-1.5">
-                    <i class="fa-solid fa-bolt"></i>
-                    <span class="hidden sm:inline">Recharger / Passer PRO</span>
-                </button>
-            </div>
-        </div>
+<body class="min-h-screen text-slate-900">
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand-mark" href="#top" aria-label="MarketPulse AI accueil">
+        <span class="brand-symbol"><i class="fa-solid fa-wave-square"></i></span>
+        <span><strong>marketpulse</strong><small>creative intelligence</small></span>
+      </a>
+      <div class="topbar-context"><span class="status-dot"></span> Studio opérationnel <span class="context-separator">•</span> septembre 2026</div>
+      <div class="topbar-actions">
+        <button id="analyticsBtn" class="ghost-action"><i class="fa-solid fa-chart-simple"></i><span>Insights</span></button>
+        <button id="referralBtn" class="ghost-action"><i class="fa-solid fa-sparkles"></i><span>Inviter</span></button>
+        <button id="themeToggleBtn" class="icon-action" title="Changer le thème"><i id="themeIcon" class="fa-solid fa-moon"></i></button>
+        <div id="userProfileBadge" class="user-chip hidden"><span class="avatar-dot"><i class="fa-solid fa-user"></i></span><span id="displayUserEmail"></span><button id="logoutBtn" title="Déconnexion"><i class="fa-solid fa-arrow-right-from-bracket"></i></button></div>
+        <div class="credit-pill"><i class="fa-solid fa-bolt"></i><span id="userCredits">15</span><span class="credit-label">crédits</span></div>
+        <button id="rechargeBtn" class="upgrade-button"><i class="fa-solid fa-arrow-up-right-dots"></i> Passer PRO</button>
+      </div>
     </header>
 
-    <!-- Main Workspace -->
-    <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Left Column: Form & History -->
-        <section class="lg:col-span-5 space-y-6">
-            <!-- Form Card -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <h2 class="text-sm font-extrabold flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Studio de Création IA
-                    </h2>
-                    <span class="text-[11px] text-slate-400 font-semibold">Omnicanal</span>
-                </div>
+    <div class="workspace" id="top">
+      <aside class="sidebar">
+        <div class="sidebar-label">Workspace</div>
+        <nav class="side-nav" aria-label="Navigation principale">
+          <a class="side-link active" href="#studio"><i class="fa-solid fa-grid-2"></i><span>Studio</span><b>⌘1</b></a>
+          <a class="side-link" href="#history"><i class="fa-regular fa-clock"></i><span>Historique</span></a>
+          <a class="side-link" href="#insights"><i class="fa-regular fa-chart-bar"></i><span>Insights</span></a>
+        </nav>
+        <div class="sidebar-label sidebar-label-spaced">Collections</div>
+        <div class="collection-link"><span class="collection-icon violet"></span> Campagnes récentes</div>
+        <div class="collection-link"><span class="collection-icon coral"></span> Idées à explorer</div>
+        <div class="collection-link"><span class="collection-icon lime"></span> Mes favoris</div>
+        <div class="sidebar-bottom">
+          <div class="sidebar-promo"><span class="promo-kicker">MARKETPULSE PRO</span><strong>Créez sans limite.</strong><p>Débloquez les langues, les exports et vos workflows avancés.</p><button id="sidebarUpgrade" type="button" onclick="document.getElementById('rechargeBtn')?.click()">Découvrir <i class="fa-solid fa-arrow-right"></i></button></div>
+          <div class="sidebar-footer"><span>v1.0 · Studio</span><span class="help-dot">?</span></div>
+        </div>
+      </aside>
 
-                <!-- Modèles Pré-remplis (Presets) -->
-                <div>
-                    <label class="block text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                        ⚡ Modèles Pré-remplis (Presets)
-                    </label>
-                    <div class="flex flex-wrap gap-1.5">
-                        <button data-preset="ecom" class="preset-btn text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
-                            🛒 E-Commerce
-                        </button>
-                        <button data-preset="coaching" class="preset-btn text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
-                            🎓 Formation
-                        </button>
-                        <button data-preset="immo" class="preset-btn text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
-                            🏠 Immobilier
-                        </button>
-                        <button data-preset="resto" class="preset-btn text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
-                            🍽️ Restauration
-                        </button>
-                        <button data-preset="b2b" class="preset-btn text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold transition-all">
-                            💼 B2B / Agence
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Input Form -->
-                <form id="campaignForm" class="space-y-3.5">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nom de votre Marque / Produit</label>
-                        <input type="text" id="brandName" required placeholder="Ex: Afrishop Express" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Public Cible (Persona)</label>
-                        <input type="text" id="targetAudience" required placeholder="Ex: Acheteurs en ligne & E-commerçants" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Ton du contenu</label>
-                            <select id="campaignTone" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                                <option>Urgent & Persuasif</option>
-                                <option>Inspirant & Captivant</option>
-                                <option>Professionnel & Premium</option>
-                                <option>Décontracté & Amusant</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Langue</label>
-                                <span class="text-[9px] bg-amber-400 text-slate-900 font-black px-1.5 py-0.2 rounded">PRO</span>
-                            </div>
-                            <select id="generationLanguage" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                                <option value="Français 🇫🇷">Français 🇫🇷</option>
-                                <option value="English 🇬🇧">English 🇬🇧 🔒</option>
-                                <option value="Español 🇪🇸">Español 🇪🇸 🔒</option>
-                                <option value="العربية 🇸🇦">العربية 🇸🇦 🔒</option>
-                                <option value="Kiswahili 🇰🇪">Kiswahili 🇰🇪 🔒</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description de votre Offre</label>
-                        <textarea id="offerDetails" rows="3" required placeholder="Ex: Livraison gratuite en 24h avec paiement Mobile Money..." class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"></textarea>
-                    </div>
-
-                    <button type="submit" id="generateBtn" class="w-full py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-base"></i> Générer la Campagne (1 crédit)
-                    </button>
-                </form>
-            </div>
-
-            <!-- Historique Cloud Card -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                    <h3 class="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-cloud text-blue-500"></i> Historique Cloud
-                    </h3>
-                    <span class="text-[10px] bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 font-bold px-2 py-0.5 rounded">Sauvegarde Auto</span>
-                </div>
-                <div id="historyList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    <p class="text-xs text-slate-400 italic text-center py-4">Aucune campagne sauvegardée pour le moment.</p>
-                </div>
-            </div>
+      <main class="content-area">
+        <section class="welcome-row" id="studio">
+          <div><p class="eyebrow">AI CREATIVE WORKSPACE <span></span></p><h1>Donnez une forme claire<br>à vos <em>idées fortes.</em></h1><p class="welcome-copy">Une intelligence créative pour transformer votre vision en campagnes prêtes à publier.</p></div>
+          <div class="welcome-aside"><div class="mini-stat"><span>Votre rythme</span><strong><i class="fa-solid fa-arrow-trend-up"></i> +24%</strong><small>vs. mois dernier</small></div><div class="orbital-mark"><i class="fa-solid fa-sparkles"></i></div></div>
         </section>
 
-        <!-- Right Column: Results Display -->
-        <section class="lg:col-span-7 space-y-4">
-            <div class="flex items-center justify-between bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <h3 class="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <i class="fa-solid fa-square-poll-vertical text-blue-500"></i> Résultat de la Campagne
-                </h3>
-                <div class="flex items-center gap-2">
-                    <button id="exportTxtBtn" class="text-xs px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-bold flex items-center gap-1 transition-all">
-                        <i class="fa-solid fa-file-lines text-emerald-500"></i> TXT
-                    </button>
-                    <button id="exportPdfBtn" class="text-xs px-2.5 py-1.5 bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/30 rounded-lg text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1 transition-all">
-                        <i class="fa-solid fa-lock text-amber-500 text-[10px]"></i> PDF PRO
-                    </button>
-                    <button id="copyAllBtn" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm">
-                        <i class="fa-solid fa-copy"></i> Copier
-                    </button>
-                </div>
-            </div>
-
-            <!-- Main Results Render Container -->
-            <div id="resultsContainer" class="space-y-4">
-                <div class="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-3">
-                    <div class="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-2xl flex items-center justify-center mx-auto text-xl">
-                        <i class="fa-solid fa-bullhorn"></i>
-                    </div>
-                    <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300">Prêt à créer votre prochaine campagne ?</h4>
-                    <p class="text-xs text-slate-400 max-w-md mx-auto">Remplissez le formulaire à gauche ou choisissez un modèle pré-rempli pour générer vos visuels, accroches et emails en quelques secondes.</p>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Toast Container -->
-    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
-    <!-- Onboarding Modal - Phase 2B Firebase Auth -->
-    <div id="onboardingModal" data-modal-overlay class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative max-h-[90vh] overflow-y-auto">
-            <div class="text-center space-y-2">
-                <div class="w-12 h-12 bg-gradient-to-tr from-blue-600 to-amber-400 rounded-2xl flex items-center justify-center text-white mx-auto shadow-md">
-                    <i class="fa-solid fa-rocket text-xl"></i>
-                </div>
-                <h3 id="authModalTitle" class="text-lg font-extrabold text-slate-900 dark:text-white">Bienvenue sur MarketPulse AI</h3>
-                <p id="authModalSubtitle" class="text-xs text-slate-500 dark:text-slate-400">Créez votre compte pour activer vos crédits gratuits.</p>
-            </div>
-
-            <!-- Referral Banner (Hidden by default) -->
-            <div id="referralBanner" class="hidden p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-400/30 rounded-xl text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2 font-bold">
-                <i class="fa-solid fa-gift text-base"></i>
-                <span>🎁 Code de parrainage activé ! Vous recevez 5 crédits bonus.</span>
-            </div>
-
-            <!-- Auth Mode Toggle -->
-            <div class="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-                <button id="authModeRegisterBtn" class="flex-1 py-2 text-xs font-extrabold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all">Créer un compte</button>
-                <button id="authModeLoginBtn" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-all">Se connecter</button>
-            </div>
-
-            <!-- Error Container -->
-            <div id="authErrorContainer" class="hidden p-3 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
-                <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
-                <span id="authErrorMessage"></span>
-            </div>
-
-            <!-- Auth Form -->
-            <form id="onboardingForm" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Votre Adresse E-mail</label>
-                    <input type="email" id="onboardingEmail" required placeholder="nom@exemple.com" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Mot de passe</label>
-                    <input type="password" id="onboardingPassword" required placeholder="Minimum 6 caractères" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                    <p class="text-[10px] text-slate-400 mt-1">Minimum 6 caractères, ne sera jamais stocké en clair</p>
-                </div>
-                <div id="confirmPasswordGroup">
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Confirmer le mot de passe</label>
-                    <input type="password" id="onboardingConfirmPassword" placeholder="Confirmez votre mot de passe" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Code de parrainage (Optionnel)</label>
-                    <input type="text" id="referralCodeInput" placeholder="Ex: FREE15" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                </div>
-
-                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs flex items-center justify-between text-slate-600 dark:text-slate-400 font-bold">
-                    <span>Offre d'activation :</span>
-                    <span id="signupCreditsBadge" class="text-blue-600 dark:text-blue-400">15 Crédits Offerts</span>
-                </div>
-
-                <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-user-plus"></i>
-                    <span id="authSubmitText">Créer mon compte</span>
-                </button>
+        <section class="studio-grid">
+          <div class="composer-card">
+            <div class="card-heading"><div><p class="section-kicker">01 / BRIEF CRÉATIF</p><h2>Construire une campagne</h2></div><span class="live-badge"><i class="fa-solid fa-circle"></i> LIVE</span></div>
+            <div class="preset-strip"><div class="field-caption">Commencer avec un template</div><div class="preset-list"><button data-preset="ecom" class="preset-btn"><i class="fa-solid fa-bag-shopping"></i>E-commerce</button><button data-preset="coaching" class="preset-btn"><i class="fa-solid fa-graduation-cap"></i>Formation</button><button data-preset="immo" class="preset-btn"><i class="fa-solid fa-house"></i>Immobilier</button><button data-preset="resto" class="preset-btn"><i class="fa-solid fa-utensils"></i>Food</button><button data-preset="b2b" class="preset-btn"><i class="fa-solid fa-building"></i>B2B</button></div></div>
+            <form id="campaignForm" class="campaign-form">
+              <div class="field-block field-wide"><label for="brandName"><span>Marque ou produit</span><small>Requis</small></label><div class="input-wrap"><i class="fa-regular fa-star"></i><input id="brandName" type="text" required placeholder="Ex. Naya Studio, une marque de soins naturels"></div></div>
+              <div class="field-block field-wide"><label for="targetAudience"><span>À qui voulez-vous parler ?</span><small>Audience cible</small></label><div class="input-wrap"><i class="fa-regular fa-user"></i><input id="targetAudience" type="text" required placeholder="Ex. Femmes actives, 25–40 ans, sensibles au bien-être"></div></div>
+              <div class="form-split"><div class="field-block"><label for="campaignTone"><span>Personnalité</span></label><div class="select-wrap"><select id="campaignTone"><option>Urgent & Persuasif</option><option>Inspirant & Captivant</option><option>Professionnel & Premium</option><option>Décontracté & Amusant</option></select><i class="fa-solid fa-chevron-down"></i></div></div><div class="field-block"><label for="generationLanguage"><span>Langue</span><span class="pro-label">PRO</span></label><div class="select-wrap"><select id="generationLanguage"><option value="Français 🇫🇷">Français 🇫🇷</option><option value="English 🇬🇧">English 🇬🇧 🔒</option><option value="Español 🇪🇸">Español 🇪🇸 🔒</option><option value="العربية 🇸🇦">العربية 🇸🇦 🔒</option><option value="Kiswahili 🇰🇪">Kiswahili 🇰🇪 🔒</option></select><i class="fa-solid fa-chevron-down"></i></div></div></div>
+              <div class="field-block field-wide"><label for="offerDetails"><span>Votre idée en quelques mots</span><small>Le contexte fait la différence</small></label><textarea id="offerDetails" rows="4" required placeholder="Décrivez votre offre, votre objectif ou le lancement à annoncer…"></textarea><div class="textarea-footer"><span><i class="fa-regular fa-lightbulb"></i> Soyez précis, l'IA s'occupe du reste</span><span>0 / 500</span></div></div>
+              <button id="generateBtn" type="submit" class="generate-button"><span class="generate-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span><span>Générer ma campagne</span><small>1 crédit</small><i class="fa-solid fa-arrow-right arrow-end"></i></button>
             </form>
+          </div>
 
-            <!-- Toggle Link -->
-            <div class="text-center">
-                <button id="authToggleLink" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold">Déjà un compte ? Se connecter</button>
-            </div>
+          <div class="preview-column">
+            <div class="preview-card"><div class="preview-top"><div><p class="section-kicker">02 / VOTRE SORTIE</p><h2>Creative preview</h2></div><div class="preview-actions"><button id="exportTxtBtn" title="Exporter en TXT"><i class="fa-regular fa-file-lines"></i></button><button id="exportPdfBtn" title="Exporter en PDF"><i class="fa-regular fa-file-pdf"></i></button><button id="copyAllBtn" title="Copier le résultat"><i class="fa-regular fa-copy"></i></button></div></div><div id="resultsContainer" class="results-container"><div class="empty-preview"><div class="preview-shape"><i class="fa-solid fa-wand-magic-sparkles"></i></div><p class="empty-kicker">VOTRE ESPACE D’EXPRESSION</p><h3>Votre prochaine belle idée<br>commence ici.</h3><span>Remplissez le brief à gauche pour révéler votre campagne.</span><div class="empty-line"></div><div class="empty-meta"><span><i class="fa-solid fa-bolt"></i> Génération en quelques secondes</span><span><i class="fa-solid fa-shield-halved"></i> Vos données restent privées</span></div></div></div></div>
+            <div class="inspiration-card"><div class="inspiration-glow"></div><div><span class="section-kicker">INSIGHT DU JOUR</span><p>Les marques mémorables ne parlent pas plus fort. Elles parlent avec plus de justesse.</p></div><span class="insight-number">01</span></div>
+          </div>
+        </section>
 
-            <!-- Verification Section (hidden by default) -->
-            <div id="verificationSection" class="hidden space-y-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                <div class="text-center space-y-2">
-                    <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center mx-auto">
-                        <i class="fa-solid fa-envelope-circle-check text-lg"></i>
-                    </div>
-                    <h4 class="text-sm font-extrabold text-slate-900 dark:text-white">Vérifiez votre e-mail</h4>
-                    <p class="text-xs text-slate-600 dark:text-slate-400">Un e-mail de vérification a été envoyé à <span id="verificationEmailDisplay" class="font-bold text-slate-900 dark:text-white"></span></p>
-                    <p class="text-[11px] text-slate-500">Cliquez sur le lien dans l'e-mail, puis revenez ici et cliquez sur "J'ai vérifié".</p>
-                </div>
-                <div class="grid grid-cols-1 gap-2">
-                    <button id="resendVerificationBtn" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-paper-plane"></i> Renvoyer l'e-mail
-                    </button>
-                    <button id="refreshVerificationBtn" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-arrows-rotate"></i> J'ai vérifié, rafraîchir
-                    </button>
-                    <button id="verificationLogoutBtn" class="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all">
-                        Changer de compte / Se déconnecter
-                    </button>
-                </div>
-            </div>
-
-            <!-- Old localStorage migration hint -->
-            <div id="legacyAccountHint" class="hidden p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-700 dark:text-blue-300">
-                <i class="fa-solid fa-circle-info mr-1"></i>
-                <span>Vous aviez déjà un compte local. Créez maintenant votre vrai compte Firebase avec le même e-mail pour conserver vos crédits.</span>
-            </div>
-        </div>
+        <section class="history-section" id="history"><div class="history-heading"><div><p class="section-kicker">03 / VOTRE BIBLIOTHÈQUE</p><h2>Campagnes récentes</h2></div><span class="save-badge"><i class="fa-solid fa-cloud"></i> Sauvegarde automatique</span></div><div id="historyList" class="history-list"><div class="history-empty"><i class="fa-regular fa-folder-open"></i><span>Vos campagnes générées apparaîtront ici.</span></div></div></section>
+        <section class="insights-anchor" id="insights"><span>MarketPulse Intelligence</span><span>Une suite créative pensée pour aller de l’idée à l’impact.</span></section>
+      </main>
     </div>
+  </div>
 
-    <!-- Chariow / Pro Modal with Embedded Chariow Snap Widget -->
-    <div id="chariowModal" data-modal-overlay class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
-            <button id="closeChariowBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            
-            <div class="text-center space-y-2">
-                <span class="text-[10px] bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">Passer à la vitesse supérieure</span>
-                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Rechargez vos Crédits & Passez PRO</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Paiement instantané via Chariow (Mobile Money & Carte Bancaire)</p>
-            </div>
+  <div id="toastContainer" class="toast-container"></div>
 
-            <!-- Embedded Official Chariow Widget -->
-            <div class="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 text-center">
-                <span class="text-xs font-bold text-slate-700 dark:text-slate-300">📱 Guichet Chariow Snap</span>
-                <div id="chariow-widget" 
-                    data-product-id="prd_7xzzwu92"
-                    data-store-domain="digicraft.mychariow.shop"
-                    data-style="tap"
-                    data-border-style="rounded"
-                    data-cta-width="xs"
-                    data-cta-animation="pulse_glow"
-                    data-locale="en"
-                    data-primary-color="#0047AB"
-                    data-background-color="#0047AB"
-                    data-custom-cta-text="Obtenir maintenant"></div>
-            </div>
+  <div id="onboardingModal" data-modal-overlay class="modal-overlay hidden"><div class="auth-modal"><button class="modal-close" onclick="document.getElementById('onboardingModal')?.classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button><div class="auth-visual"><span class="brand-symbol"><i class="fa-solid fa-wave-square"></i></span><p>YOUR IDEAS,<br><em>AMPLIFIED.</em></p><span class="auth-orbit"><i class="fa-solid fa-sparkles"></i></span></div><div class="auth-content"><p class="section-kicker">BIENVENUE DANS LE STUDIO</p><h2 id="authModalTitle">Ravi de vous revoir.</h2><p id="authModalSubtitle">Connectez-vous pour retrouver vos campagnes.</p><div class="flex bg-slate-100 p-1 rounded-xl mb-5"><button id="authModeLoginBtn" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg">Connexion</button><button id="authModeRegisterBtn" type="button" class="flex-1 py-2 text-xs font-bold rounded-lg">Créer un compte</button></div><form id="onboardingForm" class="auth-form"><input id="onboardingEmail" type="email" required placeholder="Votre adresse e-mail"><input id="onboardingPassword" type="password" required placeholder="Votre mot de passe"><div id="confirmPasswordGroup" class="hidden"><input id="onboardingConfirmPassword" type="password" placeholder="Confirmer le mot de passe"></div><input id="referralCodeInput" type="hidden"><div id="authErrorContainer" class="hidden"><p id="authErrorMessage"></p></div><button id="authSubmitBtn" type="submit" class="generate-button"><span id="authSubmitText">Entrer dans le studio</span><i class="fa-solid fa-arrow-right arrow-end"></i></button><p class="auth-switch"><span id="authToggleText">Nouveau dans le studio ?</span> <button id="authToggleLink" type="button">Créer un compte</button></p></form><div id="verificationSection" class="hidden verification-panel"><h4>Vérifiez votre e-mail</h4><p>Un lien a été envoyé à <strong id="verificationEmailDisplay"></strong>.</p><button id="resendVerificationBtn" type="button">Renvoyer l’e-mail</button><button id="refreshVerificationBtn" type="button">J’ai vérifié, rafraîchir</button><button id="verificationLogoutBtn" type="button">Changer de compte</button></div><div id="legacyAccountHint" class="hidden"></div></div></div></div>
 
-            <div class="grid grid-cols-2 gap-3 pt-2">
-                <!-- Pack Standard -->
-                <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 flex flex-col justify-between">
-                    <div>
-                        <h4 class="text-xs font-extrabold text-slate-900 dark:text-white">Pack Pro 50</h4>
-                        <p class="text-[11px] text-slate-500">50 Crédits de Génération</p>
-                        <div class="text-lg font-black text-blue-600 dark:text-blue-400 my-2">4 900 FCFA</div>
-                    </div>
-                    <button id="buy50Btn" title="Achat sécurisé via Chariow bientôt disponible (Phase 4) - actuellement local uniquement" class="w-full py-2 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white font-bold text-xs rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-coins text-amber-400"></i> Acheter 50 Crédits (Bientôt)
-                    </button>
-                </div>
+  <div id="chariowModal" data-modal-overlay class="modal-overlay hidden"><div class="product-modal"><button id="closeChariowBtn" class="modal-close"><i class="fa-solid fa-xmark"></i></button><span class="section-kicker">MARKETPULSE PRO</span><h2>Plus d’idées. Plus d’impact.</h2><p>Débloquez les exports, les langues et une création sans limite.</p><div class="chariow-widget-box"><span>Choisissez votre accès</span><div id="chariow-widget" data-product-id="prd_7xzzwu92" data-store-domain="digicraft.mychariow.shop" data-style="tap" data-border-style="rounded" data-cta-width="xs" data-cta-animation="pulse_glow" data-locale="en" data-primary-color="#171b35" data-background-color="#171b35" data-custom-cta-text="Obtenir maintenant"></div></div><div class="plan-options"><div><small>PACK CRÉATIF</small><strong>50 crédits</strong><b>4 900 FCFA</b><button id="buy50Btn" type="button">Bientôt disponible</button></div><div class="featured-plan"><small>LE PLUS CHOISI</small><strong>PRO illimité</strong><b>9 900 FCFA <i>/ mois</i></b><button id="activateProBtn" type="button">PRO bientôt disponible</button></div></div></div></div>
 
-                <!-- Pack Illimité PRO -->
-                <div class="p-4 bg-gradient-to-b from-amber-500/10 to-amber-500/5 rounded-xl border-2 border-amber-400 space-y-2 flex flex-col justify-between relative">
-                    <span class="absolute -top-2.5 right-3 bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full">POPULAIRE</span>
-                    <div>
-                        <h4 class="text-xs font-extrabold text-slate-900 dark:text-white">Abonnement PRO</h4>
-                        <p class="text-[11px] text-slate-500">Génération Illimitée + PDF + Multilingue</p>
-                        <div class="text-lg font-black text-amber-500 my-2">9 900 FCFA <span class="text-[10px] text-slate-400 font-normal">/mois</span></div>
-                    </div>
-                    <button id="activateProBtn" title="Activation PRO sécurisée via Chariow bientôt disponible (Phase 4)" class="w-full py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-hourglass-half"></i> PRO bientôt disponible
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+  <div id="analyticsModal" data-modal-overlay class="modal-overlay hidden"><div class="simple-modal"><button id="closeAnalyticsBtn" class="modal-close"><i class="fa-solid fa-xmark"></i></button><p class="section-kicker">INSIGHTS</p><h2>Votre impact créatif</h2><p>Chaque idée compte. Voici ce que vous avez déjà construit.</p><div class="stats-grid"><div><span id="statWords">0</span><small>Mots générés</small></div><div><span id="statCampaigns">0</span><small>Campagnes</small></div><div><span id="statHours">0h</span><small>Temps économisé</small></div><div><span id="statCredits">15</span><small>Crédits restants</small></div></div></div></div>
 
-    <!-- Analytics Modal -->
-    <div id="analyticsModal" data-modal-overlay class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
-            <button id="closeAnalyticsBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+  <div id="referralModal" data-modal-overlay class="modal-overlay hidden"><div class="simple-modal"><button id="closeReferralBtn" class="modal-close"><i class="fa-solid fa-xmark"></i></button><p class="section-kicker">INVITATION</p><h2>Partagez l’élan.</h2><p>Invitez un ami et recevez 5 crédits bonus.</p><label for="referralLinkInput">Votre lien personnel</label><div class="referral-row"><input id="referralLinkInput" readonly><button id="copyReferralBtn" type="button"><i class="fa-regular fa-copy"></i> Copier</button></div><span id="signupCreditsBadge" class="hidden"></span></div></div>
 
-            <div class="text-center space-y-1">
-                <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 text-blue-500 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <i class="fa-solid fa-chart-pie text-lg"></i>
-                </div>
-                <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Vos Analytics Marketing</h3>
-                <p class="text-xs text-slate-400">Suivi de votre productivité et de l'impact IA</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-center border border-slate-200 dark:border-slate-700">
-                    <div id="statWords" class="text-xl font-extrabold text-blue-600 dark:text-blue-400">0</div>
-                    <div class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Mots Générés</div>
-                </div>
-                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-center border border-slate-200 dark:border-slate-700">
-                    <div id="statCampaigns" class="text-xl font-extrabold text-blue-600 dark:text-blue-400">0</div>
-                    <div class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Campagnes Créées</div>
-                </div>
-                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-center border border-slate-200 dark:border-slate-700">
-                    <div id="statHours" class="text-xl font-extrabold text-emerald-500">0h</div>
-                    <div class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Temps Économisé</div>
-                </div>
-                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-center border border-slate-200 dark:border-slate-700">
-                    <div id="statCredits" class="text-xl font-extrabold text-purple-500">15</div>
-                    <div class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Crédits Restants</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Referral Modal -->
-    <div id="referralModal" data-modal-overlay class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 relative">
-            <button id="closeReferralBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm p-1">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="text-center space-y-2">
-                <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 text-amber-500 rounded-2xl flex items-center justify-center mx-auto text-xl">
-                    <i class="fa-solid fa-gift"></i>
-                </div>
-                <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Programme de Parrainage</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Invitez vos amis et recevez 5 crédits bonus pour chaque inscription !</p>
-            </div>
-
-            <div class="space-y-2">
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Votre lien unique de parrainage</label>
-                <div class="flex items-center gap-2">
-                    <input type="text" id="referralLinkInput" readonly class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-300 outline-none">
-                    <button id="copyReferralBtn" class="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1">
-                        <i class="fa-solid fa-copy"></i> Copier
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Application Modulaire Phase 1A -->
-    <script type="module" src="src/js/main.js"></script>
+  <script type="module" src="src/js/main.js"></script>
 </body>
 </html>
