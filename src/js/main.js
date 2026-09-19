@@ -211,7 +211,7 @@ async function handleFirebaseAuthStateChange(firebaseUser) {
     hideUserBadge();
     clearUserHistoryUI();
     hideVerificationUI();
-    openOnboardingModal();
+    document.body.classList.add('visitor-mode');
     setAuthMode('login');
   }
 }
@@ -248,6 +248,7 @@ async function initApp() {
   const historyList = document.getElementById('historyList');
 
   document.getElementById('analyticsBtn')?.addEventListener('click', openAnalyticsModal);
+  document.getElementById('openAuthBtn')?.addEventListener('click', openOnboardingModal);
   document.getElementById('referralBtn')?.addEventListener('click', () => {
     prepareReferralModalContent();
     openReferralModal();
